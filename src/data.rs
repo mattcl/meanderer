@@ -105,6 +105,9 @@ impl Grid {
         self.cells.get_mut(idx)
     }
 
+    // This is more of a helper than anything else. At least it
+    // makes the guarantee that you'll know if you're asking for a
+    // position not currently in the grid
     pub fn get_pos(&self, row: usize, col: usize) -> Option<Position> {
         if !self.contains(row, col) {
             return None;
@@ -288,6 +291,19 @@ mod test_grid {
     }
 
     #[test]
+    fn contains() {
+        let width = 2;
+        let height = 3;
+        let grid = Grid::new(width, height);
+
+        assert!(!grid.contains(height, width));
+        assert!(!grid.contains(height - 1, width));
+        assert!(!grid.contains(height, width - 1));
+        assert!(grid.contains(height - 1, width - 1));
+        assert!(grid.contains(0, 0));
+    }
+
+    #[test]
     fn getting() {
         let width = 2;
         let height = 3;
@@ -347,6 +363,29 @@ mod test_grid {
 
         {
             let a = grid.get_mut(0, 2);
+            assert!(a.is_none());
+        }
+    }
+
+    #[test]
+    fn getting_positions() {
+        let width = 2;
+        let height = 3;
+        let grid = Grid::new(width, height);
+
+        {
+            let a = grid.get_pos(2, 1);
+            assert!(a.is_some());
+            assert_eq!(a.unwrap(), Position {row: 2, col: 1});
+
+            let a = grid.get_pos(0, 0);
+            assert!(a.is_some());
+            assert_eq!(a.unwrap(), Position {row: 0, col: 0});
+
+            let a = grid.get_pos(3, 1);
+            assert!(a.is_none());
+
+            let a = grid.get_pos(0, 2);
             assert!(a.is_none());
         }
     }
