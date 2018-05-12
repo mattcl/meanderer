@@ -1,4 +1,4 @@
-use itertools::{Itertools, join};
+use itertools::Itertools;
 use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 use std::iter;
@@ -139,7 +139,7 @@ impl Grid {
     }
 
 
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&self, display_labels: bool) -> String {
         let mut output = String::new();
         output += &iter::repeat("+").take(self.width + 1).join("---");
         output += "\n";
@@ -150,7 +150,11 @@ impl Grid {
 
             for col in 0..self.width {
                 let ref cell = self.get(row, col).unwrap();
-                top += &format!("{:^3}", cell.label());
+                if display_labels {
+                    top += &format!("{:^3}", cell.label());
+                } else {
+                    top += "   ";
+                }
 
                 if col < self.width - 1 {
                     let ref east = &self.get(row, col + 1).unwrap();
@@ -259,7 +263,7 @@ mod test_cell {
     #[test]
     fn unlinking() {
         let mut a = Cell::new(10, 20);
-        let mut b = Cell::new(30, 40);
+        let b = Cell::new(30, 40);
 
         a.link(&b.pos);
 
@@ -445,7 +449,19 @@ mod test_grid {
 +---+---+
 ".to_string();
 
-        assert_eq!(grid.to_string(), expected);
+        assert_eq!(grid.to_string(true), expected);
+
+        let expected = "\
++---+---+
+|   |   |
++---+---+
+|   |   |
++---+---+
+|   |   |
++---+---+
+".to_string();
+
+        assert_eq!(grid.to_string(false), expected);
 
         {
             let ref mut p = grid.get_mut(1, 1).unwrap();
@@ -482,7 +498,19 @@ mod test_grid {
 +---+---+
 ".to_string();
 
-        assert_eq!(grid.to_string(), expected);
+        assert_eq!(grid.to_string(true), expected);
+
+        let expected = "\
++---+---+
+|       |
++---+---+
+|   |   |
++   +---+
+|       |
++---+---+
+".to_string();
+
+        assert_eq!(grid.to_string(false), expected);
     }
 
 }
