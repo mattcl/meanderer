@@ -15,6 +15,10 @@ pub struct Cell {
     pub pos: Position,
     pub weight: i32,
     pub links: BTreeSet<Position>,
+    pub north: Option<Position>,
+    pub south: Option<Position>,
+    pub east: Option<Position>,
+    pub west: Option<Position>,
 }
 
 impl Hash for Cell {
@@ -40,6 +44,10 @@ impl Cell {
                 col: col,
             },
             weight: 0,
+            north: None,
+            south: None,
+            east: None,
+            west: None,
             links: BTreeSet::new(),
         }
     }
@@ -77,7 +85,24 @@ impl Grid {
 
         for row in 0..height {
             for col in 0..width {
-                grid.cells.push(Cell::new(row, col));
+                let mut new = Cell::new(row, col);
+                if row < height - 1 {
+                    new.south = Some(Position {row: row + 1, col: col})
+                }
+
+                if row > 0 {
+                    new.north = Some(Position {row: row - 1, col: col})
+                }
+
+                if col > 0 {
+                    new.west = Some(Position {row: row, col: col - 1})
+                }
+
+                if col < width - 1 {
+                    new.east = Some(Position {row: row, col: col + 1})
+                }
+
+                grid.cells.push(new);
             }
         }
 
@@ -202,6 +227,10 @@ mod test_cell {
                 col: 2,
             },
             weight: 0,
+            north: None,
+            south: None,
+            east: None,
+            west: None,
             links: BTreeSet::new(),
         };
         assert_eq!(a, b);
@@ -216,6 +245,10 @@ mod test_cell {
                 col: 20,
             },
             weight: 1,
+            north: None,
+            south: None,
+            east: None,
+            west: None,
             links: BTreeSet::new(),
         };
 
@@ -225,6 +258,10 @@ mod test_cell {
                 col: 20,
             },
             weight: 2,
+            north: None,
+            south: None,
+            east: None,
+            west: None,
             links: BTreeSet::new(),
         };
 
@@ -234,6 +271,10 @@ mod test_cell {
                 col: 10,
             },
             weight: 1,
+            north: None,
+            south: None,
+            east: None,
+            west: None,
             links: BTreeSet::new(),
         };
 
@@ -289,7 +330,32 @@ mod test_grid {
 
         for row in 0..height {
             for col in 0..width {
-                assert_eq!(*a.get(row, col).unwrap(), Cell::new(row, col));
+                let cell = a.get(row, col).unwrap();
+                if row < height - 1 {
+                    assert_eq!(cell.south, Some(Position {row: row + 1, col: col}));
+                } else {
+                    assert_eq!(cell.south, None);
+                }
+
+                if row > 0 {
+                    assert_eq!(cell.north, Some(Position {row: row - 1, col: col}));
+                } else {
+                    assert_eq!(cell.north, None);
+                }
+
+                if col > 0 {
+                    assert_eq!(cell.west, Some(Position {row: row, col: col - 1}));
+                } else {
+                    assert_eq!(cell.west, None);
+                }
+
+                if col < width - 1 {
+                    assert_eq!(cell.east, Some(Position {row: row, col: col + 1}));
+                } else {
+                    assert_eq!(cell.east, None);
+                }
+
+                assert_eq!(*cell, Cell::new(row, col));
             }
         }
     }
