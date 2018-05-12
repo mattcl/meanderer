@@ -19,7 +19,7 @@ impl Position {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cell {
     pub pos: Position,
     pub weight: i32,
@@ -97,6 +97,7 @@ impl Cell {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Grid {
     pub width: usize,
     pub height: usize,

@@ -12,3 +12,10 @@ itertools = "0.7.3"
 rand = "^0.4"
 termion = "^1.5"
 tui = "^0.2"
+
+[dev-dependencies]
+criterion = "^0.2"
+
+[[bench]]
+name = "algorithms"
+harness = false
