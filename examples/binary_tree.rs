@@ -8,6 +8,7 @@ use rand::Rng;
 
 fn binary(grid: &mut Grid) {
     let mut links = Vec::new();
+    let mut rng = rand::thread_rng();
 
     for c in &grid.cells {
         let choices: Vec<Position> = vec![
@@ -15,7 +16,7 @@ fn binary(grid: &mut Grid) {
             grid.get_pos(c.pos.row, c.pos.col + 1)  // east
         ].iter().filter(|x| x.is_some()).map(|x| x.clone().unwrap()).collect();
 
-        if let Some(pos) = rand::thread_rng().choose(&choices) {
+        if let Some(pos) = rng.choose(&choices) {
             links.push((c.pos.clone(), pos.clone()));
         }
     }

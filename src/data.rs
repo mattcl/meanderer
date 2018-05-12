@@ -4,10 +4,19 @@ use std::hash::{Hash, Hasher};
 use std::iter;
 
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Position {
     pub row: usize,
     pub col: usize,
+}
+
+impl Position {
+    pub fn new(row: usize, col: usize) -> Self {
+        Position {
+            row: row,
+            col: col,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -39,10 +48,7 @@ impl Eq for Cell {}
 impl Cell {
     fn new(row: usize, col: usize) -> Cell {
         Cell {
-            pos: Position {
-                row: row,
-                col: col,
-            },
+            pos: Position::new(row, col),
             weight: 0,
             north: None,
             south: None,
@@ -67,6 +73,28 @@ impl Cell {
     fn is_linked(&self, other: &Cell) -> bool {
         self.links.contains(&other.pos)
     }
+
+    fn neighbors(&self) -> Vec<Position> {
+        let mut n = Vec::new();
+
+        if let Some(ref pos) = self.north {
+            n.push(pos.clone());
+        }
+
+        if let Some(ref pos) = self.south {
+            n.push(pos.clone());
+        }
+
+        if let Some(ref pos) = self.east {
+            n.push(pos.clone());
+        }
+
+        if let Some(ref pos) = self.west {
+            n.push(pos.clone());
+        }
+
+        n
+    }
 }
 
 pub struct Grid {
@@ -87,19 +115,19 @@ impl Grid {
             for col in 0..width {
                 let mut new = Cell::new(row, col);
                 if row < height - 1 {
-                    new.south = Some(Position {row: row + 1, col: col})
+                    new.south = Some(Position::new(row + 1, col))
                 }
 
                 if row > 0 {
-                    new.north = Some(Position {row: row - 1, col: col})
+                    new.north = Some(Position::new(row - 1, col))
                 }
 
                 if col > 0 {
-                    new.west = Some(Position {row: row, col: col - 1})
+                    new.west = Some(Position::new(row, col - 1))
                 }
 
                 if col < width - 1 {
-                    new.east = Some(Position {row: row, col: col + 1})
+                    new.east = Some(Position::new(row, col + 1))
                 }
 
                 grid.cells.push(new);
@@ -107,6 +135,14 @@ impl Grid {
         }
 
         grid
+    }
+
+    pub fn neighbors(&self, row: usize, col: usize) -> Vec<Position> {
+        let idx = col + row * self.width;
+        match self.cells.get(idx) {
+            Some(ref cell) => cell.neighbors(),
+            None => Vec::new(),
+        }
     }
 
     pub fn contains(&self, row: usize, col: usize) -> bool {
@@ -222,10 +258,7 @@ mod test_cell {
     fn new() {
         let a = Cell::new(1, 2);
         let b = Cell {
-            pos: Position {
-                row: 1,
-                col: 2,
-            },
+            pos: Position::new(1, 2),
             weight: 0,
             north: None,
             south: None,
@@ -240,10 +273,7 @@ mod test_cell {
     #[test]
     fn equality() {
         let a = Cell {
-            pos: Position {
-                row: 10,
-                col: 20,
-            },
+            pos: Position::new(10, 20),
             weight: 1,
             north: None,
             south: None,
@@ -253,10 +283,7 @@ mod test_cell {
         };
 
         let b = Cell {
-            pos: Position {
-                row: 10,
-                col: 20,
-            },
+            pos: Position::new(10, 20),
             weight: 2,
             north: None,
             south: None,
@@ -266,10 +293,7 @@ mod test_cell {
         };
 
         let c = Cell {
-            pos: Position {
-                row: 20,
-                col: 10,
-            },
+            pos: Position::new(30, 40),
             weight: 1,
             north: None,
             south: None,
@@ -280,6 +304,56 @@ mod test_cell {
 
         assert_eq!(a, b);
         assert_ne!(a, c);
+    }
+
+    #[test]
+    fn neighbors() {
+        let mut a = Cell::new(3, 4);
+        a.north = Some(Position::new(2, 4));
+
+        {
+            assert_eq!(a.neighbors(), vec![Position::new(2, 4)]);
+        }
+
+        a.south = Some(Position::new(4, 4));
+
+        {
+            assert_eq!(a.neighbors(), vec![
+                Position::new(2, 4),
+                Position::new(4, 4),
+            ]);
+        }
+
+        a.east = Some(Position::new(3, 5));
+
+        {
+            assert_eq!(a.neighbors(), vec![
+                Position::new(2, 4),
+                Position::new(4, 4),
+                Position::new(3, 5),
+            ]);
+        }
+
+        a.west = Some(Position::new(3, 3));
+
+        {
+            assert_eq!(a.neighbors(), vec![
+                Position::new(2, 4),
+                Position::new(4, 4),
+                Position::new(3, 5),
+                Position::new(3, 3),
+            ]);
+        }
+
+        a.south = None;
+
+        {
+            assert_eq!(a.neighbors(), vec![
+                Position::new(2, 4),
+                Position::new(3, 5),
+                Position::new(3, 3),
+            ]);
+        }
     }
 
     #[test]
@@ -332,25 +406,25 @@ mod test_grid {
             for col in 0..width {
                 let cell = a.get(row, col).unwrap();
                 if row < height - 1 {
-                    assert_eq!(cell.south, Some(Position {row: row + 1, col: col}));
+                    assert_eq!(cell.south, Some(Position::new(row + 1, col)));
                 } else {
                     assert_eq!(cell.south, None);
                 }
 
                 if row > 0 {
-                    assert_eq!(cell.north, Some(Position {row: row - 1, col: col}));
+                    assert_eq!(cell.north, Some(Position::new(row - 1, col)));
                 } else {
                     assert_eq!(cell.north, None);
                 }
 
                 if col > 0 {
-                    assert_eq!(cell.west, Some(Position {row: row, col: col - 1}));
+                    assert_eq!(cell.west, Some(Position::new(row, col - 1)));
                 } else {
                     assert_eq!(cell.west, None);
                 }
 
                 if col < width - 1 {
-                    assert_eq!(cell.east, Some(Position {row: row, col: col + 1}));
+                    assert_eq!(cell.east, Some(Position::new(row, col + 1)));
                 } else {
                     assert_eq!(cell.east, None);
                 }
@@ -358,6 +432,16 @@ mod test_grid {
                 assert_eq!(*cell, Cell::new(row, col));
             }
         }
+    }
+
+    #[test]
+    fn neighbors() {
+        let width = 2;
+        let height = 3;
+        let grid = Grid::new(width, height);
+
+        let a = grid.get(1, 1).unwrap();
+        assert_eq!(grid.neighbors(a.pos.row, a.pos.col), a.neighbors());
     }
 
     #[test]
@@ -446,11 +530,11 @@ mod test_grid {
         {
             let a = grid.get_pos(2, 1);
             assert!(a.is_some());
-            assert_eq!(a.unwrap(), Position {row: 2, col: 1});
+            assert_eq!(a.unwrap(), Position::new(2, 1));
 
             let a = grid.get_pos(0, 0);
             assert!(a.is_some());
-            assert_eq!(a.unwrap(), Position {row: 0, col: 0});
+            assert_eq!(a.unwrap(), Position::new(0, 0));
 
             let a = grid.get_pos(3, 1);
             assert!(a.is_none());

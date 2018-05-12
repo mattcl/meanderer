@@ -2,7 +2,7 @@ extern crate meanderer;
 extern crate rand;
 
 
-use meanderer::data::{Grid, Position};
+use meanderer::data::Grid;
 use rand::Rng;
 
 
