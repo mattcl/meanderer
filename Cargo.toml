@@ -1,0 +1,13 @@
+[package]
+name = "meanderer"
+version = "0.1.0"
+authors = ["Matt Chun-Lum <matt@questionable.engineering"]
+
+[profile.release]
+lto = true
+
+[dependencies]
+error-chain = "^0.11"
+itertools = "0.7.3"
+termion = "^1.5"
+tui = "^0.2"
