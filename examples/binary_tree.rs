@@ -1,28 +1,9 @@
 extern crate meanderer;
-extern crate rand;
 
 
-use meanderer::data::{Grid, Position};
-use rand::Rng;
+use meanderer::algorithms::binary;
+use meanderer::data::Grid;
 
-
-fn binary(grid: &mut Grid) {
-    let mut links = Vec::new();
-    let mut rng = rand::thread_rng();
-
-    for c in &grid.cells {
-        let choices: Vec<Position> = vec![
-            grid.get_pos(c.pos.row + 1, c.pos.col), // south
-            grid.get_pos(c.pos.row, c.pos.col + 1)  // east
-        ].iter().filter(|x| x.is_some()).map(|x| x.clone().unwrap()).collect();
-
-        if let Some(pos) = rng.choose(&choices) {
-            links.push((c.pos.clone(), pos.clone()));
-        }
-    }
-
-    links.iter().map(|(p1, p2)| grid.link(p1, p2)).collect::<()>();
-}
 
 fn main() {
     let mut grid = Grid::new(6, 6);
