@@ -11,8 +11,8 @@ fn binary(grid: &mut Grid) {
 
     for c in &grid.cells {
         let choices: Vec<Position> = vec![
-            grid.get_pos(c.pos.row + 1, c.pos.col),
-            grid.get_pos(c.pos.row, c.pos.col + 1)
+            grid.get_pos(c.pos.row + 1, c.pos.col), // south
+            grid.get_pos(c.pos.row, c.pos.col + 1)  // east
         ].iter().filter(|x| x.is_some()).map(|x| x.clone().unwrap()).collect();
 
         if let Some(pos) = rand::thread_rng().choose(&choices) {
