@@ -74,6 +74,10 @@ impl Cell {
         self.links.contains(&other.pos)
     }
 
+    pub fn is_linked_pos(&self, other: &Position) -> bool {
+        self.links.contains(other)
+    }
+
     fn neighbors(&self) -> Vec<Position> {
         let mut n = Vec::new();
 
@@ -374,6 +378,13 @@ mod test_cell {
         assert!(c.is_linked(&b));
         assert!(!a.is_linked(&c));
         assert!(!c.is_linked(&a));
+
+        assert!(a.is_linked_pos(&b.pos));
+        assert!(b.is_linked_pos(&a.pos));
+        assert!(b.is_linked_pos(&c.pos));
+        assert!(c.is_linked_pos(&b.pos));
+        assert!(!a.is_linked_pos(&c.pos));
+        assert!(!c.is_linked_pos(&a.pos));
     }
 
     #[test]
@@ -386,6 +397,7 @@ mod test_cell {
         a.unlink(&b.pos);
 
         assert!(!a.is_linked(&b));
+        assert!(!a.is_linked_pos(&b.pos));
     }
 }
 
