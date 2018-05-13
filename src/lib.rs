@@ -11,6 +11,7 @@ extern crate tui;
 pub mod algorithms;
 pub mod data;
 pub mod rendering;
+pub mod solver;
 
 #[cfg(test)]
 mod tests {

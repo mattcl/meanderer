@@ -22,7 +22,8 @@ impl Position {
 #[derive(Debug, Clone)]
 pub struct Cell {
     pub pos: Position,
-    pub weight: i32,
+    pub weight: u32,
+    pub in_solution: bool,
     pub links: BTreeSet<Position>,
     pub north: Option<Position>,
     pub south: Option<Position>,
@@ -50,6 +51,7 @@ impl Cell {
         Cell {
             pos: Position::new(row, col),
             weight: 0,
+            in_solution: false,
             north: None,
             south: None,
             east: None,
@@ -265,6 +267,7 @@ mod test_cell {
         let b = Cell {
             pos: Position::new(1, 2),
             weight: 0,
+            in_solution: false,
             north: None,
             south: None,
             east: None,
@@ -280,6 +283,7 @@ mod test_cell {
         let a = Cell {
             pos: Position::new(10, 20),
             weight: 1,
+            in_solution: false,
             north: None,
             south: None,
             east: None,
@@ -290,6 +294,7 @@ mod test_cell {
         let b = Cell {
             pos: Position::new(10, 20),
             weight: 2,
+            in_solution: true,
             north: None,
             south: None,
             east: None,
@@ -300,6 +305,7 @@ mod test_cell {
         let c = Cell {
             pos: Position::new(30, 40),
             weight: 1,
+            in_solution: true,
             north: None,
             south: None,
             east: None,
