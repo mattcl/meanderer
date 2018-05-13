@@ -4,6 +4,10 @@ use imageproc::rect::Rect;
 use imageproc::drawing::draw_filled_rect_mut;
 
 
+const DEFAULT_CELL_SIZE: u32 = 30;
+const DEFAULT_WALL_THICKNESS: u32 = 5;
+
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Style {
     pub cell_size: u32,
@@ -28,8 +32,8 @@ pub struct StyleBuilder {
 impl StyleBuilder {
     pub fn new() -> Self {
         StyleBuilder {
-            cell_size: 30,
-            wall_thickness: 5,
+            cell_size: DEFAULT_CELL_SIZE,
+            wall_thickness: DEFAULT_WALL_THICKNESS,
             background_color: Rgb([255, 255, 255]),
             wall_color: Rgb([0, 0, 0]),
             color_fn: None,
