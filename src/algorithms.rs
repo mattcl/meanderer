@@ -1,7 +1,7 @@
 use data::{Grid, Position};
 use rand;
 use rand::Rng;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 
 pub fn binary(grid: &mut Grid) {
@@ -75,9 +75,36 @@ pub fn aldous_broder(grid: &mut Grid) {
 
                 pos = neighbor_pos.clone();
             }
-
         }
     }
 
     links.iter().map(|(p1, p2)| grid.link(p1, p2)).collect::<()>();
+}
+
+pub fn wilsons(grid: &mut Grid) {
+    let mut visited = HashSet::new();
+    let mut unvisited = grid.cells.iter().map(|c| c.pos.clone()).collect::<HashSet<Position>>();
+
+    let mut rng = rand::thread_rng();
+
+    if let Some(target) = rng.choose(&unvisited) {
+        visited.insert(target.clone());
+    }
+
+    if let Some(ref origin) = rng.choose(&grid.cells) {
+        let mut path = Vec::new();
+        while true {
+            if let Some(neighbor) = rng.choose(&grid.neighbors(origin.pos.row, origin.pos.col)) {
+                if visited.contains(neighbor) {
+
+                } else {
+                    path.push(neighbor.clone());
+                }
+            }
+        }
+    }
+}
+
+fn _walk(grid: &Grid, visited: &mut HashSet<Position>) {
+
 }

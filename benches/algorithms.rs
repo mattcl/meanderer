@@ -4,7 +4,7 @@ extern crate meanderer;
 
 
 use criterion::{Criterion, ParameterizedBenchmark};
-use meanderer::algorithms::{binary, sidewinder, aldous_broder};
+use meanderer::algorithms::{aldous_broder, binary, sidewinder, wilsons};
 use meanderer::data::Grid;
 
 
@@ -29,6 +29,12 @@ fn criterion_benchmark(c: &mut Criterion) {
         |b, i| {
             let mut grid = Grid::new(*i, *i);
             b.iter(|| aldous_broder(&mut grid))
+        }
+    ).with_function(
+        "wilsons",
+        |b, i| {
+            let mut grid = Grid::new(*i, *i);
+            b.iter(|| wilsons(&mut grid))
         }
     );
 
