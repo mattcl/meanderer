@@ -1,7 +1,7 @@
 use data::{Grid, Position};
 use rand;
 use rand::Rng;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 
 pub fn binary(grid: &mut Grid) {
@@ -25,8 +25,7 @@ pub fn binary(grid: &mut Grid) {
 pub fn sidewinder(grid: &mut Grid) {
     let mut links = Vec::new();
 
-    for row in 0..grid.height {
-        let mut run = Vec::new();
+    for row in 0..grid.height { let mut run = Vec::new();
         let mut rng = rand::thread_rng();
 
         for col in 0..grid.width {
@@ -56,20 +55,20 @@ pub fn sidewinder(grid: &mut Grid) {
 
 pub fn aldous_broder(grid: &mut Grid) {
     let mut links = Vec::new();
-    let mut linked = HashMap::new();
+    let mut linked = HashSet::new();
     let mut rng = rand::thread_rng();
 
     if let Some(ref starting_cell) = rng.choose(&grid.cells) {
         let mut pos = starting_cell.pos.clone();
-        linked.insert(pos.clone(), true);
+        linked.insert(pos.clone());
 
         let mut unvisited = grid.width * grid.height - 1;
 
         while unvisited > 0 {
             if let Some(neighbor_pos) = rng.choose(&grid.neighbors(pos.row, pos.col)) {
-                if !linked.contains_key(neighbor_pos) {
+                if !linked.contains(neighbor_pos) {
                     links.push((pos.clone(), neighbor_pos.clone()));
-                    linked.insert(neighbor_pos.clone(), true);
+                    linked.insert(neighbor_pos.clone());
                     unvisited -= 1;
                 }
 
@@ -82,29 +81,74 @@ pub fn aldous_broder(grid: &mut Grid) {
 }
 
 pub fn wilsons(grid: &mut Grid) {
-    let mut visited = HashSet::new();
-    let mut unvisited = grid.cells.iter().map(|c| c.pos.clone()).collect::<HashSet<Position>>();
-
+    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
     let mut rng = rand::thread_rng();
 
-    if let Some(target) = rng.choose(&unvisited) {
-        visited.insert(target.clone());
-    }
+    _make_initial(&mut unvisited);
 
-    if let Some(ref origin) = rng.choose(&grid.cells) {
-        let mut path = Vec::new();
-        while true {
-            if let Some(neighbor) = rng.choose(&grid.neighbors(origin.pos.row, origin.pos.col)) {
-                if visited.contains(neighbor) {
-
-                } else {
-                    path.push(neighbor.clone());
-                }
-            }
+    while !unvisited.is_empty() {
+        if let Some(start) = rng.choose(&unvisited.iter().cloned().collect::<Vec<Position>>()) {
+            // walk from the start to a visisted cell
+            let mut path = Vec::new();
+            path.push(start.clone());
+            _walk(grid, &mut path, &mut unvisited);
         }
     }
 }
 
-fn _walk(grid: &Grid, visited: &mut HashSet<Position>) {
+fn _make_initial(unvisited: &mut HashSet<Position>) {
+    let mut rng = rand::thread_rng();
 
+    let options = unvisited.iter().cloned().collect::<Vec<Position>>();
+
+    if let Some(initial) = rng.choose(&options) {
+        unvisited.remove(initial);
+    }
+}
+
+fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Position>) {
+    let mut rng = rand::thread_rng();
+
+    let mut path_set = path.iter().cloned().collect::<HashSet<Position>>();
+
+    while let Some(current) = path.get(path.len() - 1).cloned() {
+        let mut choices = grid.neighbors(current.row, current.col);
+
+        // if there is a previous position in the path, we can ensure that
+        // we don't waste time by randomly selecting that element
+        if path.len() > 1 {
+            choices.retain(|c| c != &path[path.len() - 2]);
+        }
+
+        if let Some(next) = rng.choose(&choices) {
+            if !unvisited.contains(next) {
+                // link everything from path to next
+                path.push(next.clone());
+                for i in 0..path.len()  {
+                    if i < path.len() - 1 {
+                        grid.link(&path[i], &path[i + 1]);
+                    }
+                    unvisited.remove(&path[i]);
+                }
+
+                // we're done with this walk
+                return;
+
+            } else if path_set.contains(next) {
+                // remove loop
+                for i in 0..path.len() {
+                    if path[i] == *next {
+                        path.truncate(i + 1);
+                        break;
+                    }
+                }
+
+                // reset the path set
+                path_set = path.iter().cloned().collect::<HashSet<Position>>();
+            } else {
+                path.push(next.clone());
+                path_set.insert(next.clone());
+            }
+        }
+    }
 }
