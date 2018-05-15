@@ -31,6 +31,33 @@ fn _dijkstra(grid: &mut Grid, front: Vec<Position>, dist: u32, visited: &mut Has
     _dijkstra(grid, next, dist + 1, visited);
 }
 
+pub fn furthest_corners(grid: &mut Grid) -> (Position, Position) {
+    let mut candidates = Vec::new();
+
+    let corners = vec![
+        grid.get(0, 0).unwrap().clone(),
+        grid.get(0, grid.width - 1).unwrap().clone(),
+        grid.get(grid.height - 1, 0).unwrap().clone(),
+        grid.get(grid.height - 1, grid.width - 1).unwrap().clone(),
+    ];
+
+    for corner in &corners {
+        dijkstra(grid, &corner.pos);
+        let max  = vec![
+            grid.get(0, 0).unwrap(),
+            grid.get(0, grid.width - 1).unwrap(),
+            grid.get(grid.height - 1, 0).unwrap(),
+            grid.get(grid.height - 1, grid.width - 1).unwrap(),
+        ].iter().max_by_key(|c| c.weight).unwrap().clone();
+        candidates.push((corner.pos.clone(), max.pos.clone(), max.weight));
+    }
+
+    candidates.sort_by_key(|c| c.2);
+
+    let (pos1, pos2, _) = candidates[candidates.len() - 1].clone();
+    (pos1, pos2)
+}
+
 pub fn solve(grid: &mut Grid, start: &Position, target: &Position) {
     dijkstra(grid, start);
     _solve_to(grid, target);
