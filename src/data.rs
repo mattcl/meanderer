@@ -47,7 +47,7 @@ impl PartialEq for Cell {
 impl Eq for Cell {}
 
 impl Cell {
-    fn new(row: usize, col: usize) -> Cell {
+    pub fn new(row: usize, col: usize) -> Cell {
         Cell {
             pos: Position::new(row, col),
             weight: 0,

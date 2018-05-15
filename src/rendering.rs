@@ -14,7 +14,7 @@ pub struct Style {
     pub wall_thickness: u32,
     pub background_color: Rgb<u8>,
     pub wall_color: Rgb<u8>,
-    pub color_fn: Option<fn(weight: u32) -> Rgb<u8>>,
+    pub color_fn: Option<fn(weight: u32, max_weight: u32) -> Rgb<u8>>,
     pub draw_solution: bool,
     pub solution_color: Rgb<u8>,
 }
@@ -24,7 +24,7 @@ pub struct StyleBuilder {
     pub wall_thickness: u32,
     pub background_color: Rgb<u8>,
     pub wall_color: Rgb<u8>,
-    pub color_fn: Option<fn(weight: u32) -> Rgb<u8>>,
+    pub color_fn: Option<fn(weight: u32, max_weight: u32) -> Rgb<u8>>,
     pub draw_solution: bool,
     pub solution_color: Rgb<u8>,
 }
@@ -62,7 +62,7 @@ impl StyleBuilder {
         self
     }
 
-    pub fn color_fn(mut self, color_fn: fn(weight: u32) -> Rgb<u8>) -> Self {
+    pub fn color_fn(mut self, color_fn: fn(weight: u32, max_weight: u32) -> Rgb<u8>) -> Self {
         self.color_fn = Some(color_fn);
         self
     }
@@ -90,13 +90,17 @@ impl StyleBuilder {
     }
 }
 
-pub fn default_color_fn(weight: u32) -> Rgb<u8> {
-    Rgb([0, 255 - 2 * weight as u8, 0])
+pub fn default_color_fn(weight: u32, max_weight: u32) -> Rgb<u8> {
+    let intensity = (max_weight - weight) as f32 / max_weight as f32;
+    let dark = (255.0 * intensity).round() as u8;
+    let bright = 128 + (127.0 * intensity).round() as u8;
+    Rgb([dark, bright, dark])
 }
 
 pub fn png(grid: &Grid, style: &Style, name: &str) {
     let width = grid.width as u32 * style.cell_size + (grid.width as u32 + 1) * style.wall_thickness;
     let height = grid.height as u32 * style.cell_size + (grid.height as u32 + 1) * style.wall_thickness;
+    let max_weight = grid.cells.iter().max_by_key(|c| c.weight).unwrap_or(&Cell::new(0, 0)).weight;
 
     let mut img = RgbImage::new(width, height);
 
@@ -121,16 +125,16 @@ pub fn png(grid: &Grid, style: &Style, name: &str) {
             if style.draw_solution && cell.in_solution {
                 draw_filled_rect_mut(&mut img, Rect::at(x, y).of_size(w, h), style.solution_color);
             } else if let Some(f) = style.color_fn {
-                draw_filled_rect_mut(&mut img, Rect::at(x, y).of_size(w, h), f(cell.weight));
+                draw_filled_rect_mut(&mut img, Rect::at(x, y).of_size(w, h), f(cell.weight, max_weight));
             }
 
 
             if let Some(ref east) = cell.east {
-                _east_wall(&mut img, grid, style, cell, east);
+                _east_wall(&mut img, grid, style, cell, east, max_weight);
             }
 
             if let Some(ref south) = cell.south {
-                _south_wall(&mut img, grid, style, cell, south);
+                _south_wall(&mut img, grid, style, cell, south, max_weight);
             }
         }
     }
@@ -144,7 +148,7 @@ pub fn png(grid: &Grid, style: &Style, name: &str) {
     img.save(name).unwrap()
 }
 
-fn _east_wall(img: &mut RgbImage, grid: &Grid, style: &Style, cell: &Cell, east: &Position) {
+fn _east_wall(img: &mut RgbImage, grid: &Grid, style: &Style, cell: &Cell, east: &Position, max_weight: u32) {
     if !cell.is_linked_pos(east) {
         let x = (cell.pos.col + 1) as i32 * (style.cell_size + style.wall_thickness) as i32;
         let y = cell.pos.row as i32 * (style.cell_size + style.wall_thickness) as i32;
@@ -161,7 +165,7 @@ fn _east_wall(img: &mut RgbImage, grid: &Grid, style: &Style, cell: &Cell, east:
                 let h = style.cell_size;
 
                 let color = match style.color_fn {
-                    Some(f) => f(cell.weight),
+                    Some(f) => f(cell.weight, max_weight),
                     None => style.background_color,
                 };
 
@@ -171,7 +175,7 @@ fn _east_wall(img: &mut RgbImage, grid: &Grid, style: &Style, cell: &Cell, east:
     }
 }
 
-fn _south_wall(img: &mut RgbImage, grid: &Grid, style: &Style, cell: &Cell, south: &Position) {
+fn _south_wall(img: &mut RgbImage, grid: &Grid, style: &Style, cell: &Cell, south: &Position, max_weight: u32) {
     if !cell.is_linked_pos(south) {
         let x = cell.pos.col as i32 * (style.cell_size + style.wall_thickness) as i32;
         let y = (cell.pos.row + 1) as i32 * (style.cell_size + style.wall_thickness) as i32;
@@ -188,7 +192,7 @@ fn _south_wall(img: &mut RgbImage, grid: &Grid, style: &Style, cell: &Cell, sout
                 let h = style.wall_thickness;
 
                 let color = match style.color_fn {
-                    Some(f) => f(cell.weight),
+                    Some(f) => f(cell.weight, max_weight),
                     None => style.background_color,
                 };
 

@@ -2,13 +2,13 @@ use data::{Grid, Position};
 use std::collections::HashSet;
 
 
-pub fn dijkstra(grid: &mut Grid) {
-    let start = vec![Position::new(0, 0)];
+pub fn dijkstra(grid: &mut Grid, start: &Position) {
+    let start = vec![start.clone()];
     let mut visited = HashSet::new();
     _dijkstra(grid, start, 0, &mut visited);
 }
 
-pub fn _dijkstra(grid: &mut Grid, front: Vec<Position>, dist: u32, visited: &mut HashSet<Position>) {
+fn _dijkstra(grid: &mut Grid, front: Vec<Position>, dist: u32, visited: &mut HashSet<Position>) {
     if front.is_empty() {
         return;
     }
@@ -32,7 +32,12 @@ pub fn _dijkstra(grid: &mut Grid, front: Vec<Position>, dist: u32, visited: &mut
     _dijkstra(grid, next, dist + 1, visited);
 }
 
-pub fn solve_to(grid: &mut Grid, target: &Position) {
+pub fn solve(grid: &mut Grid, start: &Position, target: &Position) {
+    dijkstra(grid, start);
+    _solve_to(grid, target);
+}
+
+fn _solve_to(grid: &mut Grid, target: &Position) {
     let mut next = None;
 
     if let Some(ref mut target) = grid.get_mut(target.row, target.col) {
@@ -50,6 +55,6 @@ pub fn solve_to(grid: &mut Grid, target: &Position) {
     }
 
     if let Some(next) = next {
-        solve_to(grid, &next);
+        _solve_to(grid, &next);
     }
 }
