@@ -1,32 +1,34 @@
 use data::{Grid, Position};
 use rand;
-use rand::Rng;
+use rand::{Rng, ThreadRng};
 use std::collections::HashSet;
 
-
 pub fn binary(grid: &mut Grid) {
-    let mut links = Vec::new();
     let mut rng = rand::thread_rng();
 
-    for c in &grid.cells {
+    for i in 0..grid.cells.len() {
+        let c = grid.cells[i].pos.clone();
         let choices: Vec<Position> = vec![
-            grid.get_pos(c.pos.row + 1, c.pos.col), // south
-            grid.get_pos(c.pos.row, c.pos.col + 1)  // east
-        ].iter().filter(|x| x.is_some()).map(|x| x.clone().unwrap()).collect();
+            grid.get_pos(c.row + 1, c.col), // south
+            grid.get_pos(c.row, c.col + 1), // east
+        ].iter()
+            .cloned()
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect();
 
         if let Some(pos) = rng.choose(&choices) {
-            links.push((c.pos.clone(), pos.clone()));
+            grid.link(&c, pos);
         }
     }
-
-    links.iter().map(|(p1, p2)| grid.link(p1, p2)).collect::<()>();
 }
 
 pub fn sidewinder(grid: &mut Grid) {
     let mut links = Vec::new();
+    let mut rng = rand::thread_rng();
 
-    for row in 0..grid.height { let mut run = Vec::new();
-        let mut rng = rand::thread_rng();
+    for row in 0..grid.height {
+        let mut run = Vec::new();
 
         for col in 0..grid.width {
             let cell = grid.get(row, col).unwrap(); // this is safe
@@ -47,10 +49,12 @@ pub fn sidewinder(grid: &mut Grid) {
             } else if let Some(ref pos) = cell.east {
                 links.push((cell.pos.clone(), pos.clone()));
             }
-
         }
     }
-    links.iter().map(|(p1, p2)| grid.link(p1, p2)).collect::<()>();
+    links
+        .iter()
+        .map(|(p1, p2)| grid.link(p1, p2))
+        .collect::<()>();
 }
 
 pub fn aldous_broder(grid: &mut Grid) {
@@ -77,7 +81,10 @@ pub fn aldous_broder(grid: &mut Grid) {
         }
     }
 
-    links.iter().map(|(p1, p2)| grid.link(p1, p2)).collect::<()>();
+    links
+        .iter()
+        .map(|(p1, p2)| grid.link(p1, p2))
+        .collect::<()>();
 }
 
 pub fn wilsons(grid: &mut Grid) {
@@ -96,14 +103,17 @@ pub fn wilsons(grid: &mut Grid) {
     }
 }
 
-fn _make_initial(unvisited: &mut HashSet<Position>) {
+fn _make_initial(unvisited: &mut HashSet<Position>) -> Option<Position> {
     let mut rng = rand::thread_rng();
 
     let options = unvisited.iter().cloned().collect::<Vec<Position>>();
 
     if let Some(initial) = rng.choose(&options) {
         unvisited.remove(initial);
+        return Some(initial.clone());
     }
+
+    None
 }
 
 fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Position>) {
@@ -124,7 +134,7 @@ fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Posi
             if !unvisited.contains(next) {
                 // link everything from path to next
                 path.push(next.clone());
-                for i in 0..path.len()  {
+                for i in 0..path.len() {
                     if i < path.len() - 1 {
                         grid.link(&path[i], &path[i + 1]);
                     }
@@ -133,7 +143,6 @@ fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Posi
 
                 // we're done with this walk
                 return;
-
             } else if path_set.contains(next) {
                 // remove loop
                 for i in 0..path.len() {
@@ -151,4 +160,67 @@ fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Posi
             }
         }
     }
+}
+
+pub fn hunt_and_kill(grid: &mut Grid) {
+    // pick a random cell
+    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
+    let mut rng = rand::thread_rng();
+
+    if let Some(start) = _make_initial(&mut unvisited) {
+        let mut current = start;
+
+        // no tail recursion in rust yet :(
+        loop {
+            if let Some(next) = _hunt_and_kill(grid, &mut unvisited, &mut rng, &current) {
+                current = next.clone()
+            } else {
+                break;
+            }
+        }
+    }
+}
+
+fn _hunt_and_kill(
+    grid: &mut Grid,
+    unvisited: &mut HashSet<Position>,
+    rng: &mut ThreadRng,
+    current: &Position,
+) -> Option<Position> {
+    let neighbors = grid.neighbors(current.row, current.col);
+    let unvisited_neighbors: Vec<Position> = neighbors
+        .iter()
+        .cloned()
+        .filter(|x| unvisited.contains(x))
+        .collect();
+
+    let mut next: Option<Position> = None;
+
+    if !unvisited_neighbors.is_empty() {
+        if let Some(neighbor) = rng.choose(&unvisited_neighbors) {
+            grid.link(current, neighbor);
+            next = Some(neighbor.clone());
+        }
+    } else if !unvisited.is_empty() {
+        for i in 0..grid.cells.len() {
+            let cur = grid.cells[i].pos.clone();
+            if !grid.has_links(cur.row, cur.col) {
+                if let Some(linked_neighbor) = rng.choose(&grid.neighbors(cur.row, cur.col)
+                    .iter()
+                    .filter(|pos| grid.has_links(pos.row, pos.col))
+                    .collect::<Vec<&Position>>())
+                {
+                    grid.link(&cur, linked_neighbor);
+                    next = Some(cur.clone());
+                    break;
+                }
+            }
+        }
+    }
+
+    if let Some(ref next) = next {
+        unvisited.remove(next);
+    }
+
+    next
 }

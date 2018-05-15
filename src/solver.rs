@@ -1,7 +1,6 @@
 use data::{Grid, Position};
 use std::collections::HashSet;
 
-
 pub fn dijkstra(grid: &mut Grid, start: &Position) {
     let start = vec![start.clone()];
     let mut visited = HashSet::new();
@@ -55,6 +54,6 @@ fn _solve_to(grid: &mut Grid, target: &Position) {
     }
 
     if let Some(next) = next {
-        _solve_to(grid, &next);
+        _solve_to(grid, &next)
     }
 }

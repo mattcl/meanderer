@@ -3,7 +3,6 @@ use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 use std::iter;
 
-
 #[derive(Clone, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Position {
     pub row: usize,
@@ -12,10 +11,7 @@ pub struct Position {
 
 impl Position {
     pub fn new(row: usize, col: usize) -> Self {
-        Position {
-            row: row,
-            col: col,
-        }
+        Position { row: row, col: col }
     }
 }
 
@@ -206,6 +202,13 @@ impl Grid {
         }
     }
 
+    pub fn has_links(&self, row: usize, col: usize) -> bool {
+        let idx = col + row * self.width;
+        match self.cells.get(idx) {
+            Some(cell) => !cell.links.is_empty(),
+            None => false,
+        }
+    }
 
     pub fn to_string(&self, display_labels: bool) -> String {
         let mut output = String::new();
@@ -329,41 +332,50 @@ mod test_cell {
         a.south = Some(Position::new(4, 4));
 
         {
-            assert_eq!(a.neighbors(), vec![
-                Position::new(2, 4),
-                Position::new(4, 4),
-            ]);
+            assert_eq!(
+                a.neighbors(),
+                vec![Position::new(2, 4), Position::new(4, 4)]
+            );
         }
 
         a.east = Some(Position::new(3, 5));
 
         {
-            assert_eq!(a.neighbors(), vec![
-                Position::new(2, 4),
-                Position::new(4, 4),
-                Position::new(3, 5),
-            ]);
+            assert_eq!(
+                a.neighbors(),
+                vec![
+                    Position::new(2, 4),
+                    Position::new(4, 4),
+                    Position::new(3, 5),
+                ]
+            );
         }
 
         a.west = Some(Position::new(3, 3));
 
         {
-            assert_eq!(a.neighbors(), vec![
-                Position::new(2, 4),
-                Position::new(4, 4),
-                Position::new(3, 5),
-                Position::new(3, 3),
-            ]);
+            assert_eq!(
+                a.neighbors(),
+                vec![
+                    Position::new(2, 4),
+                    Position::new(4, 4),
+                    Position::new(3, 5),
+                    Position::new(3, 3),
+                ]
+            );
         }
 
         a.south = None;
 
         {
-            assert_eq!(a.neighbors(), vec![
-                Position::new(2, 4),
-                Position::new(3, 5),
-                Position::new(3, 3),
-            ]);
+            assert_eq!(
+                a.neighbors(),
+                vec![
+                    Position::new(2, 4),
+                    Position::new(3, 5),
+                    Position::new(3, 3),
+                ]
+            );
         }
     }
 
@@ -406,7 +418,6 @@ mod test_cell {
         assert!(!a.is_linked_pos(&b.pos));
     }
 }
-
 
 #[cfg(test)]
 mod test_grid {
@@ -616,7 +627,8 @@ mod test_grid {
 +---+---+
 | 0 | 0 |
 +---+---+
-".to_string();
+"
+            .to_string();
 
         assert_eq!(grid.to_string(true), expected);
 
@@ -628,7 +640,8 @@ mod test_grid {
 +---+---+
 |   |   |
 +---+---+
-".to_string();
+"
+            .to_string();
 
         assert_eq!(grid.to_string(false), expected);
 
@@ -665,7 +678,8 @@ mod test_grid {
 +   +---+
 |456  0 |
 +---+---+
-".to_string();
+"
+            .to_string();
 
         assert_eq!(grid.to_string(true), expected);
 
@@ -677,7 +691,8 @@ mod test_grid {
 +   +---+
 |       |
 +---+---+
-".to_string();
+"
+            .to_string();
 
         assert_eq!(grid.to_string(false), expected);
     }
