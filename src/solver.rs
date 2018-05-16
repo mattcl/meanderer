@@ -2,6 +2,31 @@ use data::{Grid, Position};
 use std::collections::HashSet;
 
 pub fn dijkstra(grid: &mut Grid, start: &Position) {
+    let mut visited = HashSet::new();
+    let mut front: Vec<Position> = vec![start.clone()];
+    let mut dist = 0;
+
+    while !front.is_empty() {
+        let mut next = Vec::new();
+        for pos in &front {
+            visited.insert(pos.clone());
+            if let Some(ref mut cell) = grid.get_mut(pos.row, pos.col) {
+                cell.weight = dist;
+                let mut links = cell.links
+                    .iter()
+                    .cloned()
+                    .filter(|l| !visited.contains(l))
+                    .collect::<Vec<Position>>();
+
+                next.append(&mut links);
+            }
+        }
+        front = next;
+        dist += 1;
+    }
+}
+
+pub fn dijkstra_recursive(grid: &mut Grid, start: &Position) {
     let start = vec![start.clone()];
     let mut visited = HashSet::new();
     _dijkstra(grid, start, 0, &mut visited);
@@ -64,23 +89,23 @@ pub fn solve(grid: &mut Grid, start: &Position, target: &Position) {
 }
 
 fn _solve_to(grid: &mut Grid, target: &Position) {
-    let mut next = None;
+    let mut next = Some(target.clone());
 
-    if let Some(ref mut target) = grid.get_mut(target.row, target.col) {
-        target.in_solution = true;
-    }
+    while let Some(cur) = next.clone() {
+        next = None;
+        if let Some(ref mut cur) = grid.get_mut(cur.row, cur.col) {
+            cur.in_solution = true;
+        }
 
-    if let Some(ref target) = grid.get(target.row, target.col) {
-        for link in &target.links {
-            if let Some(ref cell) = grid.get(link.row, link.col) {
-                if cell.weight < target.weight {
-                    next = Some(link.clone());
+        if let Some(ref cur) = grid.get(cur.row, cur.col) {
+            for link in &cur.links {
+                if let Some(ref cell) = grid.get(link.row, link.col) {
+                    if cell.weight < cur.weight {
+                        next = Some(link.clone());
+                        break;
+                    }
                 }
             }
         }
-    }
-
-    if let Some(next) = next {
-        _solve_to(grid, &next)
     }
 }
