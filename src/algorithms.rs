@@ -224,3 +224,61 @@ fn _hunt_and_kill(
 
     next
 }
+
+pub fn recursive_backtracker(grid: &mut Grid) {
+    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
+    let mut rng = rand::thread_rng();
+
+    if let Some(start) = _make_initial(&mut unvisited) {
+        _recurse(grid, &mut unvisited, &mut rng, &start);
+    }
+}
+
+fn _recurse(grid: &mut Grid, unvisited: &mut HashSet<Position>, rng: &mut rand::ThreadRng, current: &Position) {
+    unvisited.remove(current);
+    loop {
+        let neighbors = grid.neighbors(current.row, current.col);
+        let unvisited_neighbors: Vec<Position> = neighbors
+            .iter()
+            .cloned()
+            .filter(|x| unvisited.contains(x))
+            .collect();
+
+        if !unvisited_neighbors.is_empty() {
+            if let Some(neighbor) = rng.choose(&unvisited_neighbors) {
+                grid.link(current, neighbor);
+                _recurse(grid, unvisited, rng, &neighbor.clone());
+            }
+        } else {
+            break;
+        }
+    }
+}
+
+pub fn iterative_backtracker(grid: &mut Grid) {
+    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
+    let mut rng = rand::thread_rng();
+
+    if let Some(start) = _make_initial(&mut unvisited) {
+        let mut stack = Vec::new();
+        stack.push(start.clone());
+
+        while let Some(cur) = stack.pop() {
+            unvisited.remove(&cur);
+            let neighbors = grid.neighbors(cur.row, cur.col);
+            let unvisited_neighbors: Vec<Position> = neighbors
+                .iter()
+                .cloned()
+                .filter(|x| unvisited.contains(x))
+                .collect();
+
+            if !unvisited_neighbors.is_empty() {
+                if let Some(neighbor) = rng.choose(&unvisited_neighbors) {
+                    grid.link(&cur, neighbor);
+                    stack.push(cur);
+                    stack.push(neighbor.clone());
+                }
+            }
+        }
+    }
+}
