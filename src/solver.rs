@@ -1,4 +1,6 @@
-use data::{Grid, MazeCell, MazeGrid, Position};
+use data::cell::MazeCell;
+use data::grid::{Grid, MazeGrid};
+use data::pos::Position;
 use std::collections::HashSet;
 
 pub fn dijkstra<G: MazeGrid>(grid: &mut G, start: &<G::CellType as MazeCell>::PositionType) {

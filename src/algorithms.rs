@@ -1,4 +1,5 @@
-use data::{Grid, MazeGrid, Position};
+use data::grid::{Grid, MazeGrid};
+use data::pos::Position;
 use rand;
 use rand::{Rng, ThreadRng};
 use std::collections::HashSet;

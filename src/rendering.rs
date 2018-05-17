@@ -1,4 +1,6 @@
-use data::{Cell, Grid, MazeCell, MazeGrid, Position};
+use data::cell::{Cell, MazeCell};
+use data::grid::{Grid, MazeGrid};
+use data::pos::Position;
 use image::{Rgb, RgbImage};
 use imageproc::drawing::draw_filled_rect_mut;
 use imageproc::rect::Rect;

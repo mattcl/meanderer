@@ -5,7 +5,7 @@ extern crate meanderer;
 use criterion::{Criterion, ParameterizedBenchmark};
 use meanderer::algorithms::{aldous_broder, binary, hunt_and_kill, iterative_backtracker,
                             recursive_backtracker, sidewinder, wilsons};
-use meanderer::data::Grid;
+use meanderer::data::grid::Grid;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let parameters = vec![10, 20, 30, 40];
