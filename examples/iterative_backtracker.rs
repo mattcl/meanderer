@@ -11,11 +11,7 @@ fn main() {
     let mut grid = Grid::new(width, height);
     iterative_backtracker(&mut grid);
     let (start, end) = furthest_corners(&mut grid);
-    solve(
-        &mut grid,
-        &start,
-        &end,
-    );
+    solve(&mut grid, &start, &end);
 
     // we do this again afterward to produce a weight map from the center of the maze
     // since it makes the rendering nicer

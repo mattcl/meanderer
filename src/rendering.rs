@@ -102,9 +102,9 @@ pub fn png(grid: &Grid, style: &Style, name: &str) {
         grid.height as u32 * style.cell_size + (grid.height as u32 + 1) * style.wall_thickness;
     let max_weight = grid.cells
         .iter()
-        .max_by_key(|c| c.weight)
+        .max_by_key(|c| c.weight())
         .unwrap_or(&Cell::new(0, 0))
-        .weight;
+        .weight();
 
     let mut img = RgbImage::new(width, height);
 
@@ -141,13 +141,13 @@ pub fn png(grid: &Grid, style: &Style, name: &str) {
             let w = style.cell_size + style.wall_thickness;
             let h = style.cell_size + style.wall_thickness;
 
-            if style.draw_solution && cell.in_solution {
+            if style.draw_solution && cell.in_solution() {
                 draw_filled_rect_mut(&mut img, Rect::at(x, y).of_size(w, h), style.solution_color);
             } else if let Some(f) = style.color_fn {
                 draw_filled_rect_mut(
                     &mut img,
                     Rect::at(x, y).of_size(w, h),
-                    f(cell.weight, max_weight),
+                    f(cell.weight(), max_weight),
                 );
             }
 
@@ -193,9 +193,9 @@ fn _east_wall(
         let h = style.cell_size + 2 * style.wall_thickness;
 
         draw_filled_rect_mut(img, Rect::at(x, y).of_size(w, h), style.wall_color);
-    } else if style.draw_solution && cell.in_solution {
+    } else if style.draw_solution && cell.in_solution() {
         if let Some(ref east_cell) = grid.get(east) {
-            if !east_cell.in_solution {
+            if !east_cell.in_solution() {
                 let x = (cell.pos.col + 1) as i32 * (style.cell_size + style.wall_thickness) as i32;
                 let y = cell.pos.row as i32 * (style.cell_size + style.wall_thickness) as i32
                     + style.wall_thickness as i32;
@@ -203,7 +203,7 @@ fn _east_wall(
                 let h = style.cell_size;
 
                 let color = match style.color_fn {
-                    Some(f) => f(cell.weight, max_weight),
+                    Some(f) => f(cell.weight(), max_weight),
                     None => style.background_color,
                 };
 
@@ -228,9 +228,9 @@ fn _south_wall(
         let h = style.wall_thickness;
 
         draw_filled_rect_mut(img, Rect::at(x, y).of_size(w, h), style.wall_color);
-    } else if style.draw_solution && cell.in_solution {
+    } else if style.draw_solution && cell.in_solution() {
         if let Some(ref south_cell) = grid.get(south) {
-            if !south_cell.in_solution {
+            if !south_cell.in_solution() {
                 let x = cell.pos.col as i32 * (style.cell_size + style.wall_thickness) as i32
                     + style.wall_thickness as i32;
                 let y = (cell.pos.row + 1) as i32 * (style.cell_size + style.wall_thickness) as i32;
@@ -238,7 +238,7 @@ fn _south_wall(
                 let h = style.wall_thickness;
 
                 let color = match style.color_fn {
-                    Some(f) => f(cell.weight, max_weight),
+                    Some(f) => f(cell.weight(), max_weight),
                     None => style.background_color,
                 };
 

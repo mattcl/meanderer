@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 use std::iter;
 
-pub trait MazePosition: Clone + Eq + Ord + PartialEq + PartialOrd {}
+pub trait MazePosition: Clone + Eq + Hash + Ord + PartialEq + PartialOrd {}
 
 #[derive(Clone, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Position {
@@ -19,45 +19,35 @@ impl Position {
 
 impl MazePosition for Position {}
 
-
 pub trait MazeCell {
     type PositionType: MazePosition;
 
     fn pos(&self) -> &Self::PositionType;
     fn label(&self) -> String;
-    fn neighbors(&self) -> Vec<Self::PositionType>;
     fn link(&mut self, other: &Self::PositionType);
     fn unlink(&mut self, other: &Self::PositionType);
     fn is_linked(&self, other: &Self) -> bool;
     fn is_linked_pos(&self, other: &Self::PositionType) -> bool;
+    fn links(&self) -> &BTreeSet<Self::PositionType>;
+    fn neighbors(&self) -> Vec<Self::PositionType>;
+    fn weight(&self) -> u32;
+    fn update_weight(&mut self, weight: u32);
+    fn in_solution(&self) -> bool;
+    fn mark_in_solution(&mut self);
 }
 
 #[derive(Debug, Clone)]
 pub struct Cell {
     pub pos: Position,
-    pub weight: u32,
-    pub in_solution: bool,
-    pub links: BTreeSet<Position>,
     pub north: Option<Position>,
     pub south: Option<Position>,
     pub east: Option<Position>,
     pub west: Option<Position>,
-}
 
-impl Hash for Cell {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.pos.row.hash(state);
-        self.pos.col.hash(state);
-    }
+    weight: u32,
+    in_solution: bool,
+    links: BTreeSet<Position>,
 }
-
-impl PartialEq for Cell {
-    fn eq(&self, other: &Cell) -> bool {
-        self.pos == other.pos
-    }
-}
-
-impl Eq for Cell {}
 
 impl Cell {
     pub fn new(row: usize, col: usize) -> Cell {
@@ -101,6 +91,10 @@ impl MazeCell for Cell {
         self.links.contains(other)
     }
 
+    fn links(&self) -> &BTreeSet<Position> {
+        &self.links
+    }
+
     fn neighbors(&self) -> Vec<Position> {
         let mut neighbors = Vec::new();
 
@@ -122,20 +116,67 @@ impl MazeCell for Cell {
 
         neighbors
     }
+
+    fn weight(&self) -> u32 {
+        self.weight
+    }
+
+    fn update_weight(&mut self, weight: u32) {
+        self.weight = weight;
+    }
+
+    fn in_solution(&self) -> bool {
+        self.in_solution
+    }
+
+    fn mark_in_solution(&mut self) {
+        self.in_solution = true;
+    }
 }
 
+impl Hash for Cell {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.pos.row.hash(state);
+        self.pos.col.hash(state);
+    }
+}
+
+impl PartialEq for Cell {
+    fn eq(&self, other: &Cell) -> bool {
+        self.pos == other.pos
+    }
+}
+
+impl Eq for Cell {}
+
 pub trait MazeGrid {
-    type PositionType: MazePosition;
     type CellType: MazeCell;
 
-    fn get(&self, pos: &Self::PositionType) -> Option<&Self::CellType>;
-    fn get_mut(&mut self, pos: &Self::PositionType) -> Option<&mut Self::CellType>;
-    fn contains(&self, pos: &Self::PositionType) -> bool;
-    fn neighbors(&self, pos: &Self::PositionType) -> Vec<Self::PositionType>;
-    fn get_pos(&self, pos: &Self::PositionType) -> Option<Self::PositionType>;
-    fn link(&mut self, pos: &Self::PositionType, other: &Self::PositionType);
-    fn unlink(&mut self, pos: &Self::PositionType, other: &Self::PositionType);
-    fn has_links(&self, pos: &Self::PositionType) -> bool;
+    fn get(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> Option<&Self::CellType>;
+    fn get_mut(
+        &mut self,
+        pos: &<Self::CellType as MazeCell>::PositionType,
+    ) -> Option<&mut Self::CellType>;
+    fn contains(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> bool;
+    fn neighbors(
+        &self,
+        pos: &<Self::CellType as MazeCell>::PositionType,
+    ) -> Vec<<Self::CellType as MazeCell>::PositionType>;
+    fn get_pos(
+        &self,
+        pos: &<Self::CellType as MazeCell>::PositionType,
+    ) -> Option<<Self::CellType as MazeCell>::PositionType>;
+    fn link(
+        &mut self,
+        pos: &<Self::CellType as MazeCell>::PositionType,
+        other: &<Self::CellType as MazeCell>::PositionType,
+    );
+    fn unlink(
+        &mut self,
+        pos: &<Self::CellType as MazeCell>::PositionType,
+        other: &<Self::CellType as MazeCell>::PositionType,
+    );
+    fn has_links(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> bool;
     fn to_string(&self, display_labels: bool) -> String;
 }
 
@@ -179,11 +220,9 @@ impl Grid {
 
         grid
     }
-
 }
 
 impl MazeGrid for Grid {
-    type PositionType = Position;
     type CellType = Cell;
 
     fn get(&self, pos: &Position) -> Option<&Cell> {
@@ -322,7 +361,7 @@ mod test_cell {
             links: BTreeSet::new(),
         };
         assert_eq!(a, b);
-        assert_eq!(a.weight, b.weight);
+        assert_eq!(a.weight(), b.weight());
     }
 
     #[test]
@@ -570,11 +609,11 @@ mod test_grid {
         {
             {
                 let a = grid.get_mut(&Position::new(2, 1)).unwrap();
-                a.weight = 10;
+                a.update_weight(10);
             }
             {
                 let b = grid.get(&Position::new(2, 1)).unwrap();
-                assert_eq!(b.weight, 10);
+                assert_eq!(b.weight(), 10);
             }
         }
 
@@ -691,17 +730,17 @@ mod test_grid {
 
         {
             let ref mut p = grid.get_mut(&Position::new(1, 1)).unwrap();
-            p.weight = 2;
+            p.update_weight(2);
         }
 
         {
             let ref mut p = grid.get_mut(&Position::new(0, 1)).unwrap();
-            p.weight = 13;
+            p.update_weight(13);
         }
 
         {
             let ref mut p = grid.get_mut(&Position::new(2, 0)).unwrap();
-            p.weight = 456;
+            p.update_weight(456);
         }
 
         let a = grid.get_pos(&Position::new(0, 0)).unwrap();

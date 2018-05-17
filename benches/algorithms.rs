@@ -3,15 +3,8 @@ extern crate criterion;
 extern crate meanderer;
 
 use criterion::{Criterion, ParameterizedBenchmark};
-use meanderer::algorithms::{
-    aldous_broder,
-    binary,
-    hunt_and_kill,
-    iterative_backtracker,
-    recursive_backtracker,
-    sidewinder,
-    wilsons
-};
+use meanderer::algorithms::{aldous_broder, binary, hunt_and_kill, iterative_backtracker,
+                            recursive_backtracker, sidewinder, wilsons};
 use meanderer::data::Grid;
 
 fn criterion_benchmark(c: &mut Criterion) {

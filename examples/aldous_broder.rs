@@ -1,7 +1,7 @@
 extern crate meanderer;
 
 use meanderer::algorithms::aldous_broder;
-use meanderer::data::{Grid, Position};
+use meanderer::data::{Grid, MazeGrid, Position};
 use meanderer::rendering::{default_color_fn, png, StyleBuilder};
 use meanderer::solver::{dijkstra, solve};
 

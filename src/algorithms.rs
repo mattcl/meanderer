@@ -234,7 +234,12 @@ pub fn recursive_backtracker(grid: &mut Grid) {
     }
 }
 
-fn _recurse(grid: &mut Grid, unvisited: &mut HashSet<Position>, rng: &mut rand::ThreadRng, current: &Position) {
+fn _recurse(
+    grid: &mut Grid,
+    unvisited: &mut HashSet<Position>,
+    rng: &mut rand::ThreadRng,
+    current: &Position,
+) {
     unvisited.remove(current);
     loop {
         let neighbors = grid.neighbors(current);
