@@ -3,6 +3,8 @@ use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 use std::iter;
 
+pub trait MazePosition: Clone + Eq + Ord + PartialEq + PartialOrd {}
+
 #[derive(Clone, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Position {
     pub row: usize,
@@ -13,6 +15,21 @@ impl Position {
     pub fn new(row: usize, col: usize) -> Self {
         Position { row: row, col: col }
     }
+}
+
+impl MazePosition for Position {}
+
+
+pub trait MazeCell {
+    type PositionType: MazePosition;
+
+    fn pos(&self) -> &Self::PositionType;
+    fn label(&self) -> String;
+    fn neighbors(&self) -> Vec<Self::PositionType>;
+    fn link(&mut self, other: &Self::PositionType);
+    fn unlink(&mut self, other: &Self::PositionType);
+    fn is_linked(&self, other: &Self) -> bool;
+    fn is_linked_pos(&self, other: &Self::PositionType) -> bool;
 }
 
 #[derive(Debug, Clone)]
@@ -55,6 +72,14 @@ impl Cell {
             links: BTreeSet::new(),
         }
     }
+}
+
+impl MazeCell for Cell {
+    type PositionType = Position;
+
+    fn pos(&self) -> &Position {
+        &self.pos
+    }
 
     fn label(&self) -> String {
         format!("{}", self.weight)
@@ -68,35 +93,50 @@ impl Cell {
         self.links.remove(other);
     }
 
-    fn is_linked(&self, other: &Cell) -> bool {
-        self.links.contains(&other.pos)
+    fn is_linked(&self, other: &Self) -> bool {
+        self.links.contains(other.pos())
     }
 
-    pub fn is_linked_pos(&self, other: &Position) -> bool {
+    fn is_linked_pos(&self, other: &Position) -> bool {
         self.links.contains(other)
     }
 
     fn neighbors(&self) -> Vec<Position> {
-        let mut n = Vec::new();
+        let mut neighbors = Vec::new();
 
         if let Some(ref pos) = self.north {
-            n.push(pos.clone());
+            neighbors.push(pos.clone());
         }
 
         if let Some(ref pos) = self.south {
-            n.push(pos.clone());
+            neighbors.push(pos.clone());
         }
 
         if let Some(ref pos) = self.east {
-            n.push(pos.clone());
+            neighbors.push(pos.clone());
         }
 
         if let Some(ref pos) = self.west {
-            n.push(pos.clone());
+            neighbors.push(pos.clone());
         }
 
-        n
+        neighbors
     }
+}
+
+pub trait MazeGrid {
+    type PositionType: MazePosition;
+    type CellType: MazeCell;
+
+    fn get(&self, pos: &Self::PositionType) -> Option<&Self::CellType>;
+    fn get_mut(&mut self, pos: &Self::PositionType) -> Option<&mut Self::CellType>;
+    fn contains(&self, pos: &Self::PositionType) -> bool;
+    fn neighbors(&self, pos: &Self::PositionType) -> Vec<Self::PositionType>;
+    fn get_pos(&self, pos: &Self::PositionType) -> Option<Self::PositionType>;
+    fn link(&mut self, pos: &Self::PositionType, other: &Self::PositionType);
+    fn unlink(&mut self, pos: &Self::PositionType, other: &Self::PositionType);
+    fn has_links(&self, pos: &Self::PositionType) -> bool;
+    fn to_string(&self, display_labels: bool) -> String;
 }
 
 #[derive(Debug, Clone)]
@@ -140,77 +180,80 @@ impl Grid {
         grid
     }
 
-    pub fn neighbors(&self, row: usize, col: usize) -> Vec<Position> {
-        let idx = col + row * self.width;
+}
+
+impl MazeGrid for Grid {
+    type PositionType = Position;
+    type CellType = Cell;
+
+    fn get(&self, pos: &Position) -> Option<&Cell> {
+        if !self.contains(pos) {
+            return None;
+        }
+        let idx = pos.col + pos.row * self.width;
+        self.cells.get(idx)
+    }
+
+    fn get_mut(&mut self, pos: &Position) -> Option<&mut Cell> {
+        if !self.contains(pos) {
+            return None;
+        }
+        let idx = pos.col + pos.row * self.width;
+        self.cells.get_mut(idx)
+    }
+
+    fn contains(&self, pos: &Position) -> bool {
+        // we don't have to check for negative numbers, since usize
+        pos.row < self.height && pos.col < self.width
+    }
+
+    fn neighbors(&self, pos: &Position) -> Vec<Position> {
+        let idx = pos.col + pos.row * self.width;
         match self.cells.get(idx) {
             Some(ref cell) => cell.neighbors(),
             None => Vec::new(),
         }
     }
 
-    pub fn contains(&self, row: usize, col: usize) -> bool {
-        // we don't have to check for negative numbers, since usize
-        row < self.height && col < self.width
-    }
-
-    pub fn get(&self, row: usize, col: usize) -> Option<&Cell> {
-        if !self.contains(row, col) {
+    fn get_pos(&self, pos: &Position) -> Option<Position> {
+        if !self.contains(pos) {
             return None;
         }
-        let idx = col + row * self.width;
-        self.cells.get(idx)
-    }
-
-    pub fn get_mut(&mut self, row: usize, col: usize) -> Option<&mut Cell> {
-        if !self.contains(row, col) {
-            return None;
-        }
-        let idx = col + row * self.width;
-        self.cells.get_mut(idx)
-    }
-
-    // This is more of a helper than anything else. At least it
-    // makes the guarantee that you'll know if you're asking for a
-    // position not currently in the grid
-    pub fn get_pos(&self, row: usize, col: usize) -> Option<Position> {
-        if !self.contains(row, col) {
-            return None;
-        }
-        let idx = col + row * self.width;
+        let idx = pos.col + pos.row * self.width;
         self.cells.get(idx).and_then(|cell| Some(cell.pos.clone()))
     }
 
-    pub fn link(&mut self, pos: &Position, other: &Position) {
+    fn link(&mut self, pos: &Position, other: &Position) {
         {
-            let ref mut root = self.get_mut(pos.row, pos.col).unwrap();
+            let ref mut root = self.get_mut(pos).unwrap();
             root.link(other);
         }
         {
-            let ref mut root = self.get_mut(other.row, other.col).unwrap();
+            let ref mut root = self.get_mut(other).unwrap();
             root.link(pos);
         }
     }
 
-    pub fn unlink(&mut self, pos: &Position, other: &Position) {
+    fn unlink(&mut self, pos: &Position, other: &Position) {
         {
-            let ref mut root = self.get_mut(pos.row, pos.col).unwrap();
+            let ref mut root = self.get_mut(pos).unwrap();
             root.unlink(other);
         }
         {
-            let ref mut root = self.get_mut(other.row, other.col).unwrap();
+            let ref mut root = self.get_mut(other).unwrap();
             root.unlink(pos);
         }
     }
 
-    pub fn has_links(&self, row: usize, col: usize) -> bool {
-        let idx = col + row * self.width;
+    fn has_links(&self, pos: &Position) -> bool {
+        let idx = pos.col + pos.row * self.width;
         match self.cells.get(idx) {
             Some(cell) => !cell.links.is_empty(),
             None => false,
         }
     }
 
-    pub fn to_string(&self, display_labels: bool) -> String {
+    fn to_string(&self, display_labels: bool) -> String {
         let mut output = String::new();
         output += &iter::repeat("+").take(self.width + 1).join("---");
         output += "\n";
@@ -220,7 +263,8 @@ impl Grid {
             let mut bot = "+".to_string();
 
             for col in 0..self.width {
-                let ref cell = self.get(row, col).unwrap();
+                let cur = Position::new(row, col);
+                let ref cell = self.get(&cur).unwrap();
                 if display_labels {
                     top += &format!("{:^3}", cell.label());
                 } else {
@@ -228,7 +272,7 @@ impl Grid {
                 }
 
                 if col < self.width - 1 {
-                    let ref east = &self.get(row, col + 1).unwrap();
+                    let east = self.get(&Position::new(cur.row, cur.col + 1)).unwrap();
                     if cell.is_linked(east) {
                         top += " ";
                     } else {
@@ -239,7 +283,7 @@ impl Grid {
                 }
 
                 if row < self.height - 1 {
-                    let ref south = self.get(row + 1, col).unwrap();
+                    let south = self.get(&Position::new(cur.row + 1, cur.col)).unwrap();
                     if cell.is_linked(south) {
                         bot += "   +";
                     } else {
@@ -434,7 +478,7 @@ mod test_grid {
 
         for row in 0..height {
             for col in 0..width {
-                let cell = a.get(row, col).unwrap();
+                let cell = a.get(&Position::new(row, col)).unwrap();
                 if row < height - 1 {
                     assert_eq!(cell.south, Some(Position::new(row + 1, col)));
                 } else {
@@ -470,8 +514,8 @@ mod test_grid {
         let height = 3;
         let grid = Grid::new(width, height);
 
-        let a = grid.get(1, 1).unwrap();
-        assert_eq!(grid.neighbors(a.pos.row, a.pos.col), a.neighbors());
+        let a = grid.get(&Position::new(1, 1)).unwrap();
+        assert_eq!(grid.neighbors(&a.pos), a.neighbors());
     }
 
     #[test]
@@ -480,11 +524,11 @@ mod test_grid {
         let height = 3;
         let grid = Grid::new(width, height);
 
-        assert!(!grid.contains(height, width));
-        assert!(!grid.contains(height - 1, width));
-        assert!(!grid.contains(height, width - 1));
-        assert!(grid.contains(height - 1, width - 1));
-        assert!(grid.contains(0, 0));
+        assert!(!grid.contains(&Position::new(height, width)));
+        assert!(!grid.contains(&Position::new(height - 1, width)));
+        assert!(!grid.contains(&Position::new(height, width - 1)));
+        assert!(grid.contains(&Position::new(height - 1, width - 1)));
+        assert!(grid.contains(&Position::new(0, 0)));
     }
 
     #[test]
@@ -494,18 +538,18 @@ mod test_grid {
         let grid = Grid::new(width, height);
 
         {
-            let a = grid.get(2, 1);
+            let a = grid.get(&Position::new(2, 1));
             assert!(a.is_some());
             assert_eq!(a.unwrap(), &Cell::new(2, 1));
 
-            let a = grid.get(0, 0);
+            let a = grid.get(&Position::new(0, 0));
             assert!(a.is_some());
             assert_eq!(a.unwrap(), &Cell::new(0, 0));
 
-            let a = grid.get(3, 1);
+            let a = grid.get(&Position::new(3, 1));
             assert!(a.is_none());
 
-            let a = grid.get(0, 2);
+            let a = grid.get(&Position::new(0, 2));
             assert!(a.is_none());
         }
     }
@@ -517,7 +561,7 @@ mod test_grid {
         let mut grid = Grid::new(width, height);
 
         {
-            let a = grid.get_mut(2, 1);
+            let a = grid.get_mut(&Position::new(2, 1));
             assert!(a.is_some());
             assert_eq!(a.unwrap(), &Cell::new(2, 1));
         }
@@ -525,28 +569,28 @@ mod test_grid {
         // verify we can change things
         {
             {
-                let a = grid.get_mut(2, 1).unwrap();
+                let a = grid.get_mut(&Position::new(2, 1)).unwrap();
                 a.weight = 10;
             }
             {
-                let b = grid.get(2, 1).unwrap();
+                let b = grid.get(&Position::new(2, 1)).unwrap();
                 assert_eq!(b.weight, 10);
             }
         }
 
         {
-            let a = grid.get_mut(0, 0);
+            let a = grid.get_mut(&Position::new(0, 0));
             assert!(a.is_some());
             assert_eq!(a.unwrap(), &Cell::new(0, 0));
         }
 
         {
-            let a = grid.get_mut(3, 1);
+            let a = grid.get_mut(&Position::new(3, 1));
             assert!(a.is_none());
         }
 
         {
-            let a = grid.get_mut(0, 2);
+            let a = grid.get_mut(&Position::new(0, 2));
             assert!(a.is_none());
         }
     }
@@ -558,18 +602,18 @@ mod test_grid {
         let grid = Grid::new(width, height);
 
         {
-            let a = grid.get_pos(2, 1);
+            let a = grid.get_pos(&Position::new(2, 1));
             assert!(a.is_some());
             assert_eq!(a.unwrap(), Position::new(2, 1));
 
-            let a = grid.get_pos(0, 0);
+            let a = grid.get_pos(&Position::new(0, 0));
             assert!(a.is_some());
             assert_eq!(a.unwrap(), Position::new(0, 0));
 
-            let a = grid.get_pos(3, 1);
+            let a = grid.get_pos(&Position::new(3, 1));
             assert!(a.is_none());
 
-            let a = grid.get_pos(0, 2);
+            let a = grid.get_pos(&Position::new(0, 2));
             assert!(a.is_none());
         }
     }
@@ -580,14 +624,14 @@ mod test_grid {
         let height = 3;
         let mut grid = Grid::new(width, height);
 
-        let a = grid.get_pos(0, 0).unwrap();
-        let b = grid.get_pos(1, 0).unwrap();
+        let a = grid.get_pos(&Position::new(0, 0)).unwrap();
+        let b = grid.get_pos(&Position::new(1, 0)).unwrap();
 
         grid.link(&a, &b);
 
-        let a = grid.get(0, 0).unwrap();
-        let b = grid.get(1, 0).unwrap();
-        let c = grid.get(1, 1).unwrap();
+        let a = grid.get(&Position::new(0, 0)).unwrap();
+        let b = grid.get(&Position::new(1, 0)).unwrap();
+        let c = grid.get(&Position::new(1, 1)).unwrap();
 
         assert!(a.is_linked(b));
         assert!(b.is_linked(a));
@@ -601,14 +645,14 @@ mod test_grid {
         let height = 3;
         let mut grid = Grid::new(width, height);
 
-        let a = grid.get_pos(0, 0).unwrap();
-        let b = grid.get_pos(1, 0).unwrap();
+        let a = grid.get_pos(&Position::new(0, 0)).unwrap();
+        let b = grid.get_pos(&Position::new(1, 0)).unwrap();
 
         grid.link(&a, &b);
         grid.unlink(&a, &b);
 
-        let a = grid.get(0, 0).unwrap();
-        let b = grid.get(1, 0).unwrap();
+        let a = grid.get(&Position::new(0, 0)).unwrap();
+        let b = grid.get(&Position::new(1, 0)).unwrap();
 
         assert!(!a.is_linked(b));
         assert!(!b.is_linked(a));
@@ -646,25 +690,25 @@ mod test_grid {
         assert_eq!(grid.to_string(false), expected);
 
         {
-            let ref mut p = grid.get_mut(1, 1).unwrap();
+            let ref mut p = grid.get_mut(&Position::new(1, 1)).unwrap();
             p.weight = 2;
         }
 
         {
-            let ref mut p = grid.get_mut(0, 1).unwrap();
+            let ref mut p = grid.get_mut(&Position::new(0, 1)).unwrap();
             p.weight = 13;
         }
 
         {
-            let ref mut p = grid.get_mut(2, 0).unwrap();
+            let ref mut p = grid.get_mut(&Position::new(2, 0)).unwrap();
             p.weight = 456;
         }
 
-        let a = grid.get_pos(0, 0).unwrap();
-        let b = grid.get_pos(0, 1).unwrap();
-        let c = grid.get_pos(1, 0).unwrap();
-        let d = grid.get_pos(2, 0).unwrap();
-        let e = grid.get_pos(2, 1).unwrap();
+        let a = grid.get_pos(&Position::new(0, 0)).unwrap();
+        let b = grid.get_pos(&Position::new(0, 1)).unwrap();
+        let c = grid.get_pos(&Position::new(1, 0)).unwrap();
+        let d = grid.get_pos(&Position::new(2, 0)).unwrap();
+        let e = grid.get_pos(&Position::new(2, 1)).unwrap();
 
         grid.link(&a, &b);
         grid.link(&c, &d);

@@ -1,4 +1,4 @@
-use data::{Cell, Grid, Position};
+use data::{Cell, Grid, MazeCell, MazeGrid, Position};
 use image::{Rgb, RgbImage};
 use imageproc::drawing::draw_filled_rect_mut;
 use imageproc::rect::Rect;
@@ -131,7 +131,8 @@ pub fn png(grid: &Grid, style: &Style, name: &str) {
 
     for col in 0..grid.width {
         for row in 0..grid.height {
-            let cell = grid.get(row, col).unwrap(); // this is technically safe
+            let cur = Position::new(row, col);
+            let cell = grid.get(&cur).unwrap(); // this is technically safe
 
             let x = (col as i32 * style.cell_size as i32)
                 + (col + 1) as i32 * style.wall_thickness as i32;
@@ -193,7 +194,7 @@ fn _east_wall(
 
         draw_filled_rect_mut(img, Rect::at(x, y).of_size(w, h), style.wall_color);
     } else if style.draw_solution && cell.in_solution {
-        if let Some(ref east_cell) = grid.get(east.row, east.col) {
+        if let Some(ref east_cell) = grid.get(east) {
             if !east_cell.in_solution {
                 let x = (cell.pos.col + 1) as i32 * (style.cell_size + style.wall_thickness) as i32;
                 let y = cell.pos.row as i32 * (style.cell_size + style.wall_thickness) as i32
@@ -228,7 +229,7 @@ fn _south_wall(
 
         draw_filled_rect_mut(img, Rect::at(x, y).of_size(w, h), style.wall_color);
     } else if style.draw_solution && cell.in_solution {
-        if let Some(ref south_cell) = grid.get(south.row, south.col) {
+        if let Some(ref south_cell) = grid.get(south) {
             if !south_cell.in_solution {
                 let x = cell.pos.col as i32 * (style.cell_size + style.wall_thickness) as i32
                     + style.wall_thickness as i32;

@@ -1,4 +1,4 @@
-use data::{Grid, Position};
+use data::{Grid, MazeGrid, Position};
 use rand;
 use rand::{Rng, ThreadRng};
 use std::collections::HashSet;
@@ -9,8 +9,8 @@ pub fn binary(grid: &mut Grid) {
     for i in 0..grid.cells.len() {
         let c = grid.cells[i].pos.clone();
         let choices: Vec<Position> = vec![
-            grid.get_pos(c.row + 1, c.col), // south
-            grid.get_pos(c.row, c.col + 1), // east
+            grid.get_pos(&Position::new(c.row + 1, c.col)), // south
+            grid.get_pos(&Position::new(c.row, c.col + 1)), // east
         ].iter()
             .cloned()
             .filter(|x| x.is_some())
@@ -31,7 +31,7 @@ pub fn sidewinder(grid: &mut Grid) {
         let mut run = Vec::new();
 
         for col in 0..grid.width {
-            let cell = grid.get(row, col).unwrap(); // this is safe
+            let cell = grid.get(&Position::new(row, col)).unwrap(); // this is safe
             run.push(cell);
 
             let east_bound = cell.east.is_none();
@@ -69,7 +69,7 @@ pub fn aldous_broder(grid: &mut Grid) {
         let mut unvisited = grid.width * grid.height - 1;
 
         while unvisited > 0 {
-            if let Some(neighbor_pos) = rng.choose(&grid.neighbors(pos.row, pos.col)) {
+            if let Some(neighbor_pos) = rng.choose(&grid.neighbors(&pos)) {
                 if !linked.contains(neighbor_pos) {
                     links.push((pos.clone(), neighbor_pos.clone()));
                     linked.insert(neighbor_pos.clone());
@@ -122,7 +122,7 @@ fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Posi
     let mut path_set = path.iter().cloned().collect::<HashSet<Position>>();
 
     while let Some(current) = path.get(path.len() - 1).cloned() {
-        let mut choices = grid.neighbors(current.row, current.col);
+        let mut choices = grid.neighbors(&current);
 
         // if there is a previous position in the path, we can ensure that
         // we don't waste time by randomly selecting that element
@@ -187,7 +187,7 @@ fn _hunt_and_kill(
     rng: &mut ThreadRng,
     current: &Position,
 ) -> Option<Position> {
-    let neighbors = grid.neighbors(current.row, current.col);
+    let neighbors = grid.neighbors(current);
     let unvisited_neighbors: Vec<Position> = neighbors
         .iter()
         .cloned()
@@ -204,10 +204,10 @@ fn _hunt_and_kill(
     } else if !unvisited.is_empty() {
         for i in 0..grid.cells.len() {
             let cur = grid.cells[i].pos.clone();
-            if !grid.has_links(cur.row, cur.col) {
-                if let Some(linked_neighbor) = rng.choose(&grid.neighbors(cur.row, cur.col)
+            if !grid.has_links(&cur) {
+                if let Some(linked_neighbor) = rng.choose(&grid.neighbors(&cur)
                     .iter()
-                    .filter(|pos| grid.has_links(pos.row, pos.col))
+                    .filter(|pos| grid.has_links(pos))
                     .collect::<Vec<&Position>>())
                 {
                     grid.link(&cur, linked_neighbor);
@@ -237,7 +237,7 @@ pub fn recursive_backtracker(grid: &mut Grid) {
 fn _recurse(grid: &mut Grid, unvisited: &mut HashSet<Position>, rng: &mut rand::ThreadRng, current: &Position) {
     unvisited.remove(current);
     loop {
-        let neighbors = grid.neighbors(current.row, current.col);
+        let neighbors = grid.neighbors(current);
         let unvisited_neighbors: Vec<Position> = neighbors
             .iter()
             .cloned()
@@ -265,7 +265,7 @@ pub fn iterative_backtracker(grid: &mut Grid) {
 
         while let Some(cur) = stack.pop() {
             unvisited.remove(&cur);
-            let neighbors = grid.neighbors(cur.row, cur.col);
+            let neighbors = grid.neighbors(&cur);
             let unvisited_neighbors: Vec<Position> = neighbors
                 .iter()
                 .cloned()

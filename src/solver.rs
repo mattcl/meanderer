@@ -1,4 +1,4 @@
-use data::{Grid, Position};
+use data::{Grid, MazeGrid, Position};
 use std::collections::HashSet;
 
 pub fn dijkstra(grid: &mut Grid, start: &Position) {
@@ -10,7 +10,7 @@ pub fn dijkstra(grid: &mut Grid, start: &Position) {
         let mut next = Vec::new();
         for pos in &front {
             visited.insert(pos.clone());
-            if let Some(ref mut cell) = grid.get_mut(pos.row, pos.col) {
+            if let Some(ref mut cell) = grid.get_mut(pos) {
                 cell.weight = dist;
                 let mut links = cell.links
                     .iter()
@@ -41,7 +41,7 @@ fn _dijkstra(grid: &mut Grid, front: Vec<Position>, dist: u32, visited: &mut Has
 
     for pos in front {
         visited.insert(pos.clone());
-        if let Some(ref mut cell) = grid.get_mut(pos.row, pos.col) {
+        if let Some(ref mut cell) = grid.get_mut(&pos) {
             cell.weight = dist;
             let mut links = cell.links
                 .iter()
@@ -60,19 +60,19 @@ pub fn furthest_corners(grid: &mut Grid) -> (Position, Position) {
     let mut candidates = Vec::new();
 
     let corners = vec![
-        grid.get(0, 0).unwrap().clone(),
-        grid.get(0, grid.width - 1).unwrap().clone(),
-        grid.get(grid.height - 1, 0).unwrap().clone(),
-        grid.get(grid.height - 1, grid.width - 1).unwrap().clone(),
+        grid.get(&Position::new(0, 0)).unwrap().clone(),
+        grid.get(&Position::new(0, grid.width - 1)).unwrap().clone(),
+        grid.get(&Position::new(grid.height - 1, 0)).unwrap().clone(),
+        grid.get(&Position::new(grid.height - 1, grid.width - 1)).unwrap().clone(),
     ];
 
     for corner in &corners {
         dijkstra(grid, &corner.pos);
         let max  = vec![
-            grid.get(0, 0).unwrap(),
-            grid.get(0, grid.width - 1).unwrap(),
-            grid.get(grid.height - 1, 0).unwrap(),
-            grid.get(grid.height - 1, grid.width - 1).unwrap(),
+            grid.get(&Position::new(0, 0)).unwrap(),
+            grid.get(&Position::new(0, grid.width - 1)).unwrap(),
+            grid.get(&Position::new(grid.height - 1, 0)).unwrap(),
+            grid.get(&Position::new(grid.height - 1, grid.width - 1)).unwrap(),
         ].iter().max_by_key(|c| c.weight).unwrap().clone();
         candidates.push((corner.pos.clone(), max.pos.clone(), max.weight));
     }
@@ -93,13 +93,13 @@ fn _solve_to(grid: &mut Grid, target: &Position) {
 
     while let Some(cur) = next.clone() {
         next = None;
-        if let Some(ref mut cur) = grid.get_mut(cur.row, cur.col) {
+        if let Some(ref mut cur) = grid.get_mut(&cur) {
             cur.in_solution = true;
         }
 
-        if let Some(ref cur) = grid.get(cur.row, cur.col) {
+        if let Some(ref cur) = grid.get(&cur) {
             for link in &cur.links {
-                if let Some(ref cell) = grid.get(link.row, link.col) {
+                if let Some(ref cell) = grid.get(&link) {
                     if cell.weight < cur.weight {
                         next = Some(link.clone());
                         break;
