@@ -1,9 +1,12 @@
-use data::cell::{Cell, MazeCell};
-use data::grid::{Grid, MazeGrid};
+use data::cell::{Cell, MazeCell, PolarCell};
+use data::grid::{Grid, MazeGrid, PolarGrid};
 use data::pos::Position;
 use image::{Rgb, RgbImage};
-use imageproc::drawing::draw_filled_rect_mut;
+use imageproc::drawing::{draw_filled_rect_mut, draw_antialiased_line_segment_mut, draw_hollow_circle_mut};
+use imageproc::pixelops::interpolate;
 use imageproc::rect::Rect;
+use std::f32;
+use std::f32::consts::PI;
 
 const DEFAULT_CELL_SIZE: u32 = 30;
 const DEFAULT_WALL_THICKNESS: u32 = 5;
@@ -248,6 +251,60 @@ fn _south_wall(
             }
         }
     }
+}
+
+pub fn polar_png(grid: &PolarGrid, style: &Style, name: &str) {
+    let offset = 5;
+    let size = (grid.rows * 2) as u32 * style.cell_size + offset * 2;
+    let center = (size as f32 / 2.0).round() as i32;
+    let max_weight = grid.cells
+        .iter()
+        .max_by_key(|c| c.weight())
+        .unwrap_or(&PolarCell::new(0, 0))
+        .weight();
+
+    let mut img = RgbImage::new(size, size);
+
+    // background
+    draw_filled_rect_mut(
+        &mut img,
+        Rect::at(0, 0).of_size(size, size),
+        style.background_color,
+    );
+
+    for cell in &grid.cells {
+        let pos = cell.pos();
+        let th = 2.0 * PI / grid.column_counts[pos.row] as f32;
+        let inner_radius = (pos.row as u32 * style.cell_size) as f32;
+        let outer_radius = ((pos.row + 1) as u32 * style.cell_size) as f32;
+        let th_ccw = pos.col as f32 * th;
+        let th_cw = (pos.col + 1) as f32 * th;
+
+        let ax = (center as f32 + (inner_radius * th_ccw.cos())) as i32;
+        let ay = (center as f32 + (inner_radius * th_ccw.sin())) as i32;
+        // let bx = (center as f32 + (outer_radius * th_ccw.cos())) as i32;
+        // let by = (center as f32 + (outer_radius * th_ccw.sin())) as i32;
+        let cx = (center as f32 + (inner_radius * th_cw.cos())) as i32;
+        let cy = (center as f32 + (inner_radius * th_cw.sin())) as i32;
+        let dx = (center as f32 + (outer_radius * th_cw.cos())) as i32;
+        let dy = (center as f32 + (outer_radius * th_cw.sin())) as i32;
+
+        if let Some(ref inward) = cell.inward {
+            if !cell.is_linked_pos(inward) {
+                draw_antialiased_line_segment_mut(&mut img, (ax, ay), (cx, cy), style.wall_color, interpolate);
+            }
+        }
+
+        if let Some(ref cw) = cell.cw {
+            if !cell.is_linked_pos(cw) {
+                draw_antialiased_line_segment_mut(&mut img, (cx, cy), (dx, dy), style.wall_color, interpolate);
+            }
+        }
+    }
+
+    draw_hollow_circle_mut(&mut img, (center, center), ((size - offset * 2) / 2) as i32, style.wall_color);
+
+    img.save(name).unwrap()
 }
 
 #[cfg(test)]

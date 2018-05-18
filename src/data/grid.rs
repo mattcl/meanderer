@@ -7,6 +7,8 @@ use std::f32::consts::PI;
 pub trait MazeGrid {
     type CellType: MazeCell;
 
+    fn cells(&self) -> &Vec<Self::CellType>;
+
     fn get(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> Option<&Self::CellType>;
 
     fn get_mut(
@@ -116,6 +118,10 @@ impl Grid {
 
 impl MazeGrid for Grid {
     type CellType = Cell;
+
+    fn cells(&self) -> &Vec<Cell> {
+        &self.cells
+    }
 
     fn get(&self, pos: &Position) -> Option<&Cell> {
         if !self.contains(pos) {
@@ -286,6 +292,10 @@ impl PolarGrid {
 
 impl MazeGrid for PolarGrid {
     type CellType = PolarCell;
+
+    fn cells(&self) -> &Vec<PolarCell> {
+        &self.cells
+    }
 
     fn get(&self, pos: &Position) -> Option<&PolarCell> {
         if !self.contains(pos) {

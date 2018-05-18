@@ -1,5 +1,6 @@
+use data::cell::MazeCell;
 use data::grid::{Grid, MazeGrid};
-use data::pos::Position;
+use data::pos::{Position, MazePosition};
 use rand;
 use rand::{Rng, ThreadRng};
 use std::collections::HashSet;
@@ -104,10 +105,10 @@ pub fn wilsons(grid: &mut Grid) {
     }
 }
 
-fn _make_initial(unvisited: &mut HashSet<Position>) -> Option<Position> {
+fn _make_initial<P: MazePosition>(unvisited: &mut HashSet<P>) -> Option<P> {
     let mut rng = rand::thread_rng();
 
-    let options = unvisited.iter().cloned().collect::<Vec<Position>>();
+    let options = unvisited.iter().cloned().collect::<Vec<P>>();
 
     if let Some(initial) = rng.choose(&options) {
         unvisited.remove(initial);
@@ -226,8 +227,8 @@ fn _hunt_and_kill(
     next
 }
 
-pub fn recursive_backtracker(grid: &mut Grid) {
-    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
+pub fn recursive_backtracker<G: MazeGrid>(grid: &mut G) {
+    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> = grid.cells().iter().map(|c| c.pos().clone()).collect();
     let mut rng = rand::thread_rng();
 
     if let Some(start) = _make_initial(&mut unvisited) {
@@ -235,16 +236,16 @@ pub fn recursive_backtracker(grid: &mut Grid) {
     }
 }
 
-fn _recurse(
-    grid: &mut Grid,
-    unvisited: &mut HashSet<Position>,
+fn _recurse<G: MazeGrid>(
+    grid: &mut G,
+    unvisited: &mut HashSet<<G::CellType as MazeCell>::PositionType>,
     rng: &mut rand::ThreadRng,
-    current: &Position,
+    current: &<G::CellType as MazeCell>::PositionType,
 ) {
     unvisited.remove(current);
     loop {
         let neighbors = grid.neighbors(current);
-        let unvisited_neighbors: Vec<Position> = neighbors
+        let unvisited_neighbors: Vec<<G::CellType as MazeCell>::PositionType> = neighbors
             .iter()
             .cloned()
             .filter(|x| unvisited.contains(x))
@@ -261,8 +262,8 @@ fn _recurse(
     }
 }
 
-pub fn iterative_backtracker(grid: &mut Grid) {
-    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
+pub fn iterative_backtracker<G: MazeGrid>(grid: &mut G) {
+    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> = grid.cells().iter().map(|c| c.pos().clone()).collect();
     let mut rng = rand::thread_rng();
 
     if let Some(start) = _make_initial(&mut unvisited) {
@@ -272,7 +273,7 @@ pub fn iterative_backtracker(grid: &mut Grid) {
         while let Some(cur) = stack.pop() {
             unvisited.remove(&cur);
             let neighbors = grid.neighbors(&cur);
-            let unvisited_neighbors: Vec<Position> = neighbors
+            let unvisited_neighbors: Vec<<G::CellType as MazeCell>::PositionType> = neighbors
                 .iter()
                 .cloned()
                 .filter(|x| unvisited.contains(x))
