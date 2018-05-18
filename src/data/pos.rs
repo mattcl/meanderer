@@ -15,4 +15,3 @@ impl Position {
 }
 
 impl MazePosition for Position {}
-

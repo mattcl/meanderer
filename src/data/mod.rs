@@ -1,6 +1,6 @@
-pub use self::cell::{Cell, MazeCell};
-pub use self::grid::{Grid, MazeGrid};
-pub use self::pos::{Position, MazePosition};
+pub use self::cell::{Cell, MazeCell, PolarCell};
+pub use self::grid::{Grid, MazeGrid, PolarGrid};
+pub use self::pos::{MazePosition, Position};
 
 pub mod cell;
 pub mod grid;
