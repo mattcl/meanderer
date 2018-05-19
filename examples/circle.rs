@@ -3,17 +3,18 @@ extern crate meanderer;
 use meanderer::algorithms::iterative_backtracker;
 use meanderer::data::{PolarGrid, Position};
 use meanderer::rendering::{default_color_fn, polar_png, StyleBuilder};
-use meanderer::solver::{dijkstra, solve};
+use meanderer::solver::{dijkstra, furthest_on_rim, solve};
 
 fn main() {
-    let rows = 30;
+    let rows = 20;
     let mut grid = PolarGrid::new(rows);
-    iterative_backtracker(&mut grid);
-    // solve(&mut grid, &start, &end); TODO
 
-    // we do this again afterward to produce a weight map from the center of the maze
-    // since it makes the rendering nicer
-    dijkstra(&mut grid, &Position::new(0, 0));
+    iterative_backtracker(&mut grid);
+
+    let start = Position::new(0, 0);
+    let end = furthest_on_rim(&mut grid, &start);
+    solve(&mut grid, &start, &end);
+
     polar_png(
         &grid,
         &StyleBuilder::new()

@@ -2,7 +2,13 @@ use data::cell::{Cell, MazeCell, PolarCell};
 use data::grid::{Grid, MazeGrid, PolarGrid};
 use data::pos::Position;
 use image::{Rgb, RgbImage};
-use imageproc::drawing::{draw_filled_rect_mut, draw_antialiased_line_segment_mut, draw_hollow_circle_mut};
+use imageproc::drawing::{
+    draw_antialiased_line_segment_mut,
+    draw_convex_polygon_mut,
+    draw_filled_rect_mut,
+    draw_hollow_circle_mut,
+    Point
+};
 use imageproc::pixelops::interpolate;
 use imageproc::rect::Rect;
 use std::f32;
@@ -265,6 +271,8 @@ pub fn polar_png(grid: &PolarGrid, style: &Style, name: &str) {
 
     let mut img = RgbImage::new(size, size);
 
+    let mut walls = Vec::new();
+
     // background
     draw_filled_rect_mut(
         &mut img,
@@ -280,26 +288,77 @@ pub fn polar_png(grid: &PolarGrid, style: &Style, name: &str) {
         let th_ccw = pos.col as f32 * th;
         let th_cw = (pos.col + 1) as f32 * th;
 
+        // counter clockwise inner corner
         let ax = (center as f32 + (inner_radius * th_ccw.cos())) as i32;
         let ay = (center as f32 + (inner_radius * th_ccw.sin())) as i32;
-        // let bx = (center as f32 + (outer_radius * th_ccw.cos())) as i32;
-        // let by = (center as f32 + (outer_radius * th_ccw.sin())) as i32;
+
+        // counter clockwise outer corner
+        let bx = (center as f32 + (outer_radius * th_ccw.cos())) as i32;
+        let by = (center as f32 + (outer_radius * th_ccw.sin())) as i32;
+
+        // clockwise inner corner
         let cx = (center as f32 + (inner_radius * th_cw.cos())) as i32;
         let cy = (center as f32 + (inner_radius * th_cw.sin())) as i32;
+
+        // clockwise outer corner
         let dx = (center as f32 + (outer_radius * th_cw.cos())) as i32;
         let dy = (center as f32 + (outer_radius * th_cw.sin())) as i32;
 
+        if style.draw_solution || style.color_fn.is_some() {
+            let mut bounds = Vec::new();
+
+            if cell.pos() != &Position::new(0, 0) {
+                bounds.push(Point::new(ax, ay));
+                bounds.push(Point::new(bx, by));
+
+                if cell.outward.len() > 1 {
+                    // midpoint outer corner
+                    let th_mid = (pos.col as f32 + 0.5) * th;
+                    let mx = (center as f32 + (outer_radius * th_mid.cos())) as i32;
+                    let my = (center as f32 + (outer_radius * th_mid.sin())) as i32;
+
+                    bounds.push(Point::new(mx, my));
+                }
+
+                bounds.push(Point::new(dx, dy));
+                bounds.push(Point::new(cx, cy));
+
+            } else {
+                let th = 2.0 * PI / grid.column_counts[pos.row + 1] as f32;
+                for i in 0..6 {
+                    let th_r = (pos.col + i) as f32 * th;
+                    let rx = (center as f32 + (outer_radius * th_r.cos())) as i32;
+                    let ry = (center as f32 + (outer_radius * th_r.sin())) as i32;
+                    bounds.push(Point::new(rx, ry));
+                }
+            }
+
+            if cell.in_solution() {
+                draw_convex_polygon_mut(&mut img, bounds.as_slice(), style.solution_color);
+            } else {
+                let color = match style.color_fn {
+                    Some(f) => f(cell.weight(), max_weight),
+                    None => style.background_color,
+                };
+                draw_convex_polygon_mut(&mut img, bounds.as_slice(), color);
+            }
+        }
+
         if let Some(ref inward) = cell.inward {
             if !cell.is_linked_pos(inward) {
-                draw_antialiased_line_segment_mut(&mut img, (ax, ay), (cx, cy), style.wall_color, interpolate);
+                walls.push(((ax, ay), (cx, cy)));
             }
         }
 
         if let Some(ref cw) = cell.cw {
             if !cell.is_linked_pos(cw) {
-                draw_antialiased_line_segment_mut(&mut img, (cx, cy), (dx, dy), style.wall_color, interpolate);
+                walls.push(((cx, cy), (dx, dy)));
             }
         }
+    }
+
+    for ((ax, ay), (bx, by)) in walls {
+        draw_antialiased_line_segment_mut(&mut img, (ax, ay), (bx, by), style.wall_color, interpolate);
     }
 
     draw_hollow_circle_mut(&mut img, (center, center), ((size - offset * 2) / 2) as i32, style.wall_color);

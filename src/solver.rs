@@ -1,5 +1,5 @@
 use data::cell::MazeCell;
-use data::grid::{Grid, MazeGrid};
+use data::grid::{Grid, MazeGrid, PolarGrid};
 use data::pos::Position;
 use std::collections::HashSet;
 
@@ -54,6 +54,25 @@ pub fn solve<G: MazeGrid>(
             }
         }
     }
+}
+
+pub fn furthest_on_rim(grid: &mut PolarGrid, from: &Position) -> Position {
+    dijkstra(grid, from);
+    let max_row = grid.rows - 1;
+    let num_cols = grid.column_counts[max_row];
+
+    let mut max = 0;
+    let mut max_pos = Position::new(max_row, 0);
+    for col in 0..num_cols {
+        let pos = Position::new(max_row, col);
+        let cell = grid.get(&pos).unwrap();
+        if cell.weight() > max {
+            max = cell.weight();
+            max_pos = pos;
+        }
+    }
+
+    grid.get(&max_pos).unwrap().pos().clone()
 }
 
 pub fn furthest_corners(grid: &mut Grid) -> (Position, Position) {
