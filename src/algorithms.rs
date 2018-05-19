@@ -1,6 +1,6 @@
 use data::cell::MazeCell;
 use data::grid::{Grid, MazeGrid};
-use data::pos::{Position, MazePosition};
+use data::pos::{MazePosition, Position};
 use rand;
 use rand::{Rng, ThreadRng};
 use std::collections::HashSet;
@@ -59,16 +59,16 @@ pub fn sidewinder(grid: &mut Grid) {
         .collect::<()>();
 }
 
-pub fn aldous_broder(grid: &mut Grid) {
+pub fn aldous_broder<G: MazeGrid>(grid: &mut G) {
     let mut links = Vec::new();
     let mut linked = HashSet::new();
     let mut rng = rand::thread_rng();
 
-    if let Some(ref starting_cell) = rng.choose(&grid.cells) {
-        let mut pos = starting_cell.pos.clone();
+    if let Some(ref starting_cell) = rng.choose(&grid.cells()) {
+        let mut pos = starting_cell.pos().clone();
         linked.insert(pos.clone());
 
-        let mut unvisited = grid.width * grid.height - 1;
+        let mut unvisited = grid.cells().len() - 1;
 
         while unvisited > 0 {
             if let Some(neighbor_pos) = rng.choose(&grid.neighbors(&pos)) {
@@ -89,14 +89,19 @@ pub fn aldous_broder(grid: &mut Grid) {
         .collect::<()>();
 }
 
-pub fn wilsons(grid: &mut Grid) {
-    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
+pub fn wilsons<G: MazeGrid>(grid: &mut G) {
+    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> =
+        grid.cells().iter().map(|c| c.pos().clone()).collect();
     let mut rng = rand::thread_rng();
 
     _make_initial(&mut unvisited);
 
     while !unvisited.is_empty() {
-        if let Some(start) = rng.choose(&unvisited.iter().cloned().collect::<Vec<Position>>()) {
+        if let Some(start) = rng.choose(&unvisited
+            .iter()
+            .cloned()
+            .collect::<Vec<<G::CellType as MazeCell>::PositionType>>())
+        {
             // walk from the start to a visisted cell
             let mut path = Vec::new();
             path.push(start.clone());
@@ -118,10 +123,16 @@ fn _make_initial<P: MazePosition>(unvisited: &mut HashSet<P>) -> Option<P> {
     None
 }
 
-fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Position>) {
+fn _walk<G: MazeGrid>(
+    grid: &mut G,
+    path: &mut Vec<<G::CellType as MazeCell>::PositionType>,
+    unvisited: &mut HashSet<<G::CellType as MazeCell>::PositionType>,
+) {
     let mut rng = rand::thread_rng();
 
-    let mut path_set = path.iter().cloned().collect::<HashSet<Position>>();
+    let mut path_set = path.iter()
+        .cloned()
+        .collect::<HashSet<<G::CellType as MazeCell>::PositionType>>();
 
     while let Some(current) = path.get(path.len() - 1).cloned() {
         let mut choices = grid.neighbors(&current);
@@ -155,7 +166,9 @@ fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Posi
                 }
 
                 // reset the path set
-                path_set = path.iter().cloned().collect::<HashSet<Position>>();
+                path_set = path.iter()
+                    .cloned()
+                    .collect::<HashSet<<G::CellType as MazeCell>::PositionType>>();
             } else {
                 path.push(next.clone());
                 path_set.insert(next.clone());
@@ -164,9 +177,10 @@ fn _walk(grid: &mut Grid, path: &mut Vec<Position>, unvisited: &mut HashSet<Posi
     }
 }
 
-pub fn hunt_and_kill(grid: &mut Grid) {
+pub fn hunt_and_kill<G: MazeGrid>(grid: &mut G) {
     // pick a random cell
-    let mut unvisited: HashSet<Position> = grid.cells.iter().map(|c| c.pos.clone()).collect();
+    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> =
+        grid.cells().iter().map(|c| c.pos().clone()).collect();
     let mut rng = rand::thread_rng();
 
     if let Some(start) = _make_initial(&mut unvisited) {
@@ -183,20 +197,20 @@ pub fn hunt_and_kill(grid: &mut Grid) {
     }
 }
 
-fn _hunt_and_kill(
-    grid: &mut Grid,
-    unvisited: &mut HashSet<Position>,
+fn _hunt_and_kill<G: MazeGrid>(
+    grid: &mut G,
+    unvisited: &mut HashSet<<G::CellType as MazeCell>::PositionType>,
     rng: &mut ThreadRng,
-    current: &Position,
-) -> Option<Position> {
+    current: &<G::CellType as MazeCell>::PositionType,
+) -> Option<<G::CellType as MazeCell>::PositionType> {
     let neighbors = grid.neighbors(current);
-    let unvisited_neighbors: Vec<Position> = neighbors
+    let unvisited_neighbors: Vec<<G::CellType as MazeCell>::PositionType> = neighbors
         .iter()
         .cloned()
         .filter(|x| unvisited.contains(x))
         .collect();
 
-    let mut next: Option<Position> = None;
+    let mut next: Option<<G::CellType as MazeCell>::PositionType> = None;
 
     if !unvisited_neighbors.is_empty() {
         if let Some(neighbor) = rng.choose(&unvisited_neighbors) {
@@ -204,13 +218,13 @@ fn _hunt_and_kill(
             next = Some(neighbor.clone());
         }
     } else if !unvisited.is_empty() {
-        for i in 0..grid.cells.len() {
-            let cur = grid.cells[i].pos.clone();
+        for i in 0..grid.cells().len() {
+            let cur = grid.cells()[i].pos().clone();
             if !grid.has_links(&cur) {
                 if let Some(linked_neighbor) = rng.choose(&grid.neighbors(&cur)
                     .iter()
                     .filter(|pos| grid.has_links(pos))
-                    .collect::<Vec<&Position>>())
+                    .collect::<Vec<&<G::CellType as MazeCell>::PositionType>>())
                 {
                     grid.link(&cur, linked_neighbor);
                     next = Some(cur.clone());
@@ -228,7 +242,8 @@ fn _hunt_and_kill(
 }
 
 pub fn recursive_backtracker<G: MazeGrid>(grid: &mut G) {
-    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> = grid.cells().iter().map(|c| c.pos().clone()).collect();
+    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> =
+        grid.cells().iter().map(|c| c.pos().clone()).collect();
     let mut rng = rand::thread_rng();
 
     if let Some(start) = _make_initial(&mut unvisited) {
@@ -263,7 +278,8 @@ fn _recurse<G: MazeGrid>(
 }
 
 pub fn iterative_backtracker<G: MazeGrid>(grid: &mut G) {
-    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> = grid.cells().iter().map(|c| c.pos().clone()).collect();
+    let mut unvisited: HashSet<<G::CellType as MazeCell>::PositionType> =
+        grid.cells().iter().map(|c| c.pos().clone()).collect();
     let mut rng = rand::thread_rng();
 
     if let Some(start) = _make_initial(&mut unvisited) {

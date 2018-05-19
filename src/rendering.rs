@@ -2,13 +2,8 @@ use data::cell::{Cell, MazeCell, PolarCell};
 use data::grid::{Grid, MazeGrid, PolarGrid};
 use data::pos::Position;
 use image::{Rgb, RgbImage};
-use imageproc::drawing::{
-    draw_antialiased_line_segment_mut,
-    draw_convex_polygon_mut,
-    draw_filled_rect_mut,
-    draw_hollow_circle_mut,
-    Point
-};
+use imageproc::drawing::{draw_antialiased_line_segment_mut, draw_convex_polygon_mut,
+                         draw_filled_rect_mut, draw_hollow_circle_mut, Point};
 use imageproc::pixelops::interpolate;
 use imageproc::rect::Rect;
 use std::f32;
@@ -322,7 +317,6 @@ pub fn polar_png(grid: &PolarGrid, style: &Style, name: &str) {
 
                 bounds.push(Point::new(dx, dy));
                 bounds.push(Point::new(cx, cy));
-
             } else {
                 let th = 2.0 * PI / grid.column_counts[pos.row + 1] as f32;
                 for i in 0..6 {
@@ -358,10 +352,21 @@ pub fn polar_png(grid: &PolarGrid, style: &Style, name: &str) {
     }
 
     for ((ax, ay), (bx, by)) in walls {
-        draw_antialiased_line_segment_mut(&mut img, (ax, ay), (bx, by), style.wall_color, interpolate);
+        draw_antialiased_line_segment_mut(
+            &mut img,
+            (ax, ay),
+            (bx, by),
+            style.wall_color,
+            interpolate,
+        );
     }
 
-    draw_hollow_circle_mut(&mut img, (center, center), ((size - offset * 2) / 2) as i32, style.wall_color);
+    draw_hollow_circle_mut(
+        &mut img,
+        (center, center),
+        ((size - offset * 2) / 2) as i32,
+        style.wall_color,
+    );
 
     img.save(name).unwrap()
 }

@@ -1,8 +1,8 @@
 use data::cell::{Cell, MazeCell, PolarCell};
 use data::pos::Position;
 use itertools::Itertools;
-use std::iter;
 use std::f32::consts::PI;
+use std::iter;
 
 pub trait MazeGrid {
     type CellType: MazeCell;
@@ -61,7 +61,8 @@ pub trait MazeGrid {
         }
         {
             let ref mut root = self.get_mut(other).unwrap();
-            root.unlink(pos); }
+            root.unlink(pos);
+        }
     }
 
     fn has_links(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> bool {
@@ -206,7 +207,6 @@ pub struct PolarGrid {
     //
     // i also need to store the number of columns per row
     // [1, 2,    5,             2]
-
     pub rows: usize,
     pub cells: Vec<PolarCell>,
     pub row_offsets: Vec<usize>,
@@ -286,7 +286,6 @@ impl PolarGrid {
                 }
             }
         }
-
     }
 }
 
@@ -754,7 +753,10 @@ mod test_polar_grid {
         let rows = 4;
         let a = PolarGrid::new(rows);
 
-        assert_eq!(a.to_string(false), "to_string is meaningless for polar grids".to_owned());
-   }
+        assert_eq!(
+            a.to_string(false),
+            "to_string is meaningless for polar grids".to_owned()
+        );
+    }
 
 }
