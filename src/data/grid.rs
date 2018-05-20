@@ -1,6 +1,7 @@
 use data::cell::{Cell, MazeCell, PolarCell};
 use data::pos::Position;
 use itertools::Itertools;
+use std::collections::BTreeSet;
 use std::f32::consts::PI;
 use std::iter;
 
@@ -69,6 +70,22 @@ pub trait MazeGrid {
         match self.get(pos) {
             Some(cell) => !cell.links().is_empty(),
             None => false,
+        }
+    }
+
+    fn links(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> BTreeSet<<Self::CellType as MazeCell>::PositionType> {
+        match self.get(pos) {
+            Some(cell) => cell.links().clone(),
+            None => BTreeSet::new(),
+        }
+    }
+
+    fn num_links(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> usize {
+        match self.get(pos) {
+            // the choice to use cell.links() instead of grid.links() is intentional
+            // since cell.links() returns a reference and grid.links() clones
+            Some(cell) => cell.links().len(),
+            None => 0,
         }
     }
 

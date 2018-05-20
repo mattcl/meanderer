@@ -1,6 +1,6 @@
 extern crate meanderer;
 
-use meanderer::algorithms::iterative_backtracker;
+use meanderer::algorithms::{braid, iterative_backtracker};
 use meanderer::data::{Grid, Position};
 use meanderer::rendering::{default_color_fn, png, StyleBuilder};
 use meanderer::solver::{dijkstra, furthest_corners, solve};
@@ -10,6 +10,10 @@ fn main() {
     let height = 50;
     let mut grid = Grid::new(width, height);
     iterative_backtracker(&mut grid);
+
+    // remove 10 percent of the dead ends in the maze
+    braid(&mut grid, 0.1);
+
     let (start, end) = furthest_corners(&mut grid);
     solve(&mut grid, &start, &end);
 

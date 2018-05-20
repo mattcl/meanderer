@@ -11,6 +11,11 @@ pub fn dijkstra<G: MazeGrid>(grid: &mut G, start: &<G::CellType as MazeCell>::Po
     while !front.is_empty() {
         let mut next = Vec::new();
         for pos in &front {
+            // possible with loops
+            if visited.contains(pos) {
+                continue;
+            }
+
             visited.insert(pos.clone());
             if let Some(ref mut cell) = grid.get_mut(pos) {
                 cell.update_weight(dist);

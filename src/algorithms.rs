@@ -206,8 +206,8 @@ fn _hunt_and_kill<G: MazeGrid>(
     let neighbors = grid.neighbors(current);
     let unvisited_neighbors: Vec<<G::CellType as MazeCell>::PositionType> = neighbors
         .iter()
-        .cloned()
         .filter(|x| unvisited.contains(x))
+        .cloned()
         .collect();
 
     let mut next: Option<<G::CellType as MazeCell>::PositionType> = None;
@@ -262,8 +262,8 @@ fn _recurse<G: MazeGrid>(
         let neighbors = grid.neighbors(current);
         let unvisited_neighbors: Vec<<G::CellType as MazeCell>::PositionType> = neighbors
             .iter()
-            .cloned()
             .filter(|x| unvisited.contains(x))
+            .cloned()
             .collect();
 
         if !unvisited_neighbors.is_empty() {
@@ -291,8 +291,8 @@ pub fn iterative_backtracker<G: MazeGrid>(grid: &mut G) {
             let neighbors = grid.neighbors(&cur);
             let unvisited_neighbors: Vec<<G::CellType as MazeCell>::PositionType> = neighbors
                 .iter()
-                .cloned()
                 .filter(|x| unvisited.contains(x))
+                .cloned()
                 .collect();
 
             if !unvisited_neighbors.is_empty() {
@@ -302,6 +302,51 @@ pub fn iterative_backtracker<G: MazeGrid>(grid: &mut G) {
                     stack.push(neighbor.clone());
                 }
             }
+        }
+    }
+}
+
+pub fn deadends<G: MazeGrid>(grid: &G) -> Vec<<G::CellType as MazeCell>::PositionType> {
+    grid.cells()
+        .iter()
+        .filter(|c| c.links().len() < 2)
+        .map(|c| c.pos().clone())
+        .collect()
+}
+
+pub fn braid<G: MazeGrid>(grid: &mut G, dead_end_removal_probability: f32) {
+    let mut rng = rand::thread_rng();
+
+    for pos in deadends(grid) {
+        if rng.next_f32() > dead_end_removal_probability {
+            continue;
+        }
+
+        let mut choice = None;
+
+        if let Some(cell) = grid.get(&pos) {
+            let mut neighbors = cell.neighbors()
+                .iter()
+                .filter(|p| !cell.links().contains(p))
+                .cloned()
+                .collect::<Vec<<G::CellType as MazeCell>::PositionType>>();
+
+            let best = neighbors.iter()
+                .filter(|p| grid.num_links(p) == 1)
+                .cloned()
+                .collect::<Vec<<G::CellType as MazeCell>::PositionType>>();
+
+            if !best.is_empty() {
+                neighbors = best;
+            }
+
+            if let Some(ch) = rng.choose(&neighbors) {
+                choice = Some(ch.clone());
+            }
+        }
+
+        if let Some(choice) = choice {
+            grid.link(&pos, &choice);
         }
     }
 }
