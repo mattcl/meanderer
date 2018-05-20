@@ -1,8 +1,11 @@
 
-# Unreleased (2018-05-19):
+# Unreleased (2018-05-20):
+- [Added] deadend and braid algorithms for creating loops in mazes
+    Changed dijkstra to avoid issues with loops
+    Added additional link helper methods to MazeGrid
 - [Changed] aldous\_broder, wilsons, and hunt\_and\_kill to work with MazeGrids
 - [Changed] polar grid drawing to include colorization
-    Added furthest_on_rim to get point furthest on the rim of a polar grid
+    Added furthest\_on_rim to get point furthest on the rim of a polar grid
     from another point
 - [Added] polar\_png for drawing polar grids
     Changed backtracker algorithms to be generalized for MazeGrid
