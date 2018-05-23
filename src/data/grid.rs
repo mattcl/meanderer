@@ -1,6 +1,8 @@
 use data::cell::{Cell, MazeCell, PolarCell};
 use data::pos::Position;
 use itertools::Itertools;
+use rand;
+use rand::Rng;
 use std::collections::BTreeSet;
 use std::f32::consts::PI;
 use std::iter;
@@ -34,6 +36,14 @@ pub trait MazeGrid {
         pos: &<Self::CellType as MazeCell>::PositionType,
     ) -> Option<<Self::CellType as MazeCell>::PositionType> {
         self.get(pos).and_then(|cell| Some(cell.pos().clone()))
+    }
+
+    fn random_pos(&self) -> Option<<Self::CellType as MazeCell>::PositionType> {
+        let mut rng = rand::thread_rng();
+        match rng.choose(self.cells()) {
+            Some(cell) => Some(cell.pos().clone()),
+            None => None,
+        }
     }
 
     fn link(
@@ -73,7 +83,10 @@ pub trait MazeGrid {
         }
     }
 
-    fn links(&self, pos: &<Self::CellType as MazeCell>::PositionType) -> BTreeSet<<Self::CellType as MazeCell>::PositionType> {
+    fn links(
+        &self,
+        pos: &<Self::CellType as MazeCell>::PositionType,
+    ) -> BTreeSet<<Self::CellType as MazeCell>::PositionType> {
         match self.get(pos) {
             Some(cell) => cell.links().clone(),
             None => BTreeSet::new(),

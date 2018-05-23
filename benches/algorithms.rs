@@ -4,7 +4,7 @@ extern crate meanderer;
 
 use criterion::{Criterion, ParameterizedBenchmark};
 use meanderer::algorithms::{aldous_broder, binary, hunt_and_kill, iterative_backtracker,
-                            recursive_backtracker, sidewinder, wilsons};
+                            recursive_backtracker, sidewinder, simplified_prims, true_prims, wilsons};
 use meanderer::data::grid::Grid;
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -39,6 +39,14 @@ fn criterion_benchmark(c: &mut Criterion) {
         .with_function("iterative-backtracker", |b, i| {
             let mut grid = Grid::new(*i, *i);
             b.iter(|| iterative_backtracker(&mut grid))
+        })
+        .with_function("simplified-prims", |b, i| {
+            let mut grid = Grid::new(*i, *i);
+            b.iter(|| simplified_prims(&mut grid))
+        })
+        .with_function("true-prims", |b, i| {
+            let mut grid = Grid::new(*i, *i);
+            b.iter(|| true_prims(&mut grid))
         });
 
     c.bench("Maze algorithms for NxN grids", benchmark);

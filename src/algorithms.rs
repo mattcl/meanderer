@@ -3,7 +3,8 @@ use data::grid::{Grid, MazeGrid};
 use data::pos::{MazePosition, Position};
 use rand;
 use rand::{Rng, ThreadRng};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 
 pub fn binary(grid: &mut Grid) {
     let mut rng = rand::thread_rng();
@@ -331,7 +332,8 @@ pub fn braid<G: MazeGrid>(grid: &mut G, dead_end_removal_probability: f32) {
                 .cloned()
                 .collect::<Vec<<G::CellType as MazeCell>::PositionType>>();
 
-            let best = neighbors.iter()
+            let best = neighbors
+                .iter()
                 .filter(|p| grid.num_links(p) == 1)
                 .cloned()
                 .collect::<Vec<<G::CellType as MazeCell>::PositionType>>();
@@ -347,6 +349,67 @@ pub fn braid<G: MazeGrid>(grid: &mut G, dead_end_removal_probability: f32) {
 
         if let Some(choice) = choice {
             grid.link(&pos, &choice);
+        }
+    }
+}
+
+pub fn simplified_prims<G: MazeGrid>(grid: &mut G) {
+    let mut rng = rand::thread_rng();
+
+    if let Some(start) = grid.random_pos() {
+        let mut active = HashSet::new();
+        active.insert(start);
+
+        while !active.is_empty() {
+            if let Some(pos) = rng.choose(&active
+                .iter()
+                .cloned()
+                .collect::<Vec<<G::CellType as MazeCell>::PositionType>>())
+            {
+                if let Some(neighbor) = rng.choose(&grid.neighbors(&pos)
+                    .iter()
+                    .filter(|n| !grid.has_links(n))
+                    .collect::<Vec<&<G::CellType as MazeCell>::PositionType>>())
+                {
+                    grid.link(pos, neighbor);
+                    active.insert((*neighbor).clone());
+                } else {
+                    active.remove(pos);
+                }
+            }
+        }
+    }
+}
+
+pub fn true_prims<G: MazeGrid>(grid: &mut G) {
+    let mut rng = rand::thread_rng();
+
+    if let Some(start) = grid.random_pos() {
+        let costs: HashMap<<G::CellType as MazeCell>::PositionType, u8> = HashMap::from_iter(
+            grid.cells()
+                .iter()
+                .map(|c| (c.pos().clone(), rng.gen_range(0, 100))),
+        );
+        let mut active = HashSet::new();
+        active.insert(start);
+
+        while !active.is_empty() {
+            if let Some(pos) = active
+                .iter()
+                .cloned()
+                .min_by(|x, y| costs[x].cmp(&costs[y]))
+            {
+                if let Some(neighbor) = grid.neighbors(&pos)
+                    .iter()
+                    .filter(|p| !grid.has_links(p))
+                    .min_by(|x, y| costs[x].cmp(&costs[y]))
+                {
+                    grid.link(&pos, neighbor);
+                    active.insert((*neighbor).clone());
+                } else {
+                    active.remove(&pos);
+                }
+            }
         }
     }
 }
