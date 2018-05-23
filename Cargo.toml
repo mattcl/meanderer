@@ -11,7 +11,7 @@ error-chain = "^0.11"
 image = "^0.19"
 imageproc = "^0.15"
 itertools = "0.7.3"
-rand = "^0.4"
+rand = "^0.5"
 termion = "^1.5"
 tui = "^0.2"
 

@@ -318,7 +318,7 @@ pub fn braid<G: MazeGrid>(grid: &mut G, dead_end_removal_probability: f32) {
     let mut rng = rand::thread_rng();
 
     for pos in deadends(grid) {
-        if rng.next_f32() > dead_end_removal_probability {
+        if rng.gen::<f32>() >= dead_end_removal_probability {
             continue;
         }
 
