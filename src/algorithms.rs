@@ -1,6 +1,7 @@
 use data::cell::MazeCell;
 use data::grid::{Grid, MazeGrid};
 use data::pos::{MazePosition, Position};
+use linked_hash_set::LinkedHashSet;
 use rand;
 use rand::{Rng, ThreadRng};
 use std::collections::{HashMap, HashSet};
@@ -411,5 +412,65 @@ pub fn true_prims<G: MazeGrid>(grid: &mut G) {
                 }
             }
         }
+    }
+}
+
+pub fn growing_tree<G: MazeGrid, F>(grid: &mut G, selection_fn: F)
+where
+    F: Fn(&mut LinkedHashSet<<G::CellType as MazeCell>::PositionType>, &mut ThreadRng)
+        -> Option<<G::CellType as MazeCell>::PositionType>,
+{
+    let mut rng = rand::thread_rng();
+
+    if let Some(start) = grid.random_pos() {
+        let mut active = LinkedHashSet::new();
+        active.insert(start);
+
+        while !active.is_empty() {
+            // unwrap since we sort of want to fail hard if we ever don't get
+            // something back
+            let pos = selection_fn(&mut active, &mut rng).unwrap();
+
+            if let Some(neighbor) = rng.choose(&grid.neighbors(&pos)
+                .iter()
+                .filter(|n| !grid.has_links(n))
+                .collect::<Vec<&<G::CellType as MazeCell>::PositionType>>())
+            {
+                grid.link(&pos, neighbor);
+                active.insert((*neighbor).clone());
+            } else {
+                active.remove(&pos);
+            }
+        }
+    }
+}
+
+pub fn random_selection<G: MazeGrid>(
+    active: &mut LinkedHashSet<<G::CellType as MazeCell>::PositionType>,
+    rng: &mut ThreadRng,
+) -> Option<<G::CellType as MazeCell>::PositionType> {
+    match rng.choose(&active
+        .iter()
+        .collect::<Vec<&<G::CellType as MazeCell>::PositionType>>())
+    {
+        Some(pos) => Some((*pos).clone()),
+        None => None,
+    }
+}
+
+pub fn last_selection<G: MazeGrid>(
+    active: &mut LinkedHashSet<<G::CellType as MazeCell>::PositionType>,
+    _: &mut ThreadRng,
+) -> Option<<G::CellType as MazeCell>::PositionType> {
+    active.back().cloned()
+}
+
+pub fn mixed_selection<G: MazeGrid>(
+    active: &mut LinkedHashSet<<G::CellType as MazeCell>::PositionType>,
+    rng: &mut ThreadRng,
+) -> Option<<G::CellType as MazeCell>::PositionType> {
+    match rng.gen_range(0, 2) {
+        0 => last_selection::<G>(active, rng),
+        _ => random_selection::<G>(active, rng),
     }
 }

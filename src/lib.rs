@@ -4,6 +4,7 @@ extern crate error_chain;
 extern crate image;
 extern crate imageproc;
 extern crate itertools;
+extern crate linked_hash_set;
 extern crate rand;
 extern crate termion;
 extern crate tui;

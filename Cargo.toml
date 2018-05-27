@@ -11,6 +11,7 @@ error-chain = "^0.11"
 image = "^0.19"
 imageproc = "^0.15"
 itertools = "0.7.3"
+linked_hash_set = "0.1.2"
 rand = "^0.5"
 termion = "^1.5"
 tui = "^0.2"
@@ -19,5 +20,9 @@ tui = "^0.2"
 criterion = "^0.2"
 
 [[bench]]
-name = "algorithms"
+name = "square_grids"
+harness = false
+
+[[bench]]
+name = "polar_grids"
 harness = false

@@ -3,13 +3,12 @@ extern crate criterion;
 extern crate meanderer;
 
 use criterion::{Criterion, ParameterizedBenchmark};
-use meanderer::algorithms::{aldous_broder, binary, hunt_and_kill, iterative_backtracker,
-                            recursive_backtracker, sidewinder, simplified_prims, true_prims, wilsons};
-use meanderer::data::grid::Grid;
+use meanderer::algorithms::{aldous_broder, binary, growing_tree, hunt_and_kill, iterative_backtracker, last_selection, mixed_selection, random_selection, recursive_backtracker, sidewinder, simplified_prims, true_prims, wilsons};
+use meanderer::data::Grid;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let parameters = vec![10, 20, 30, 40];
-    let mut benchmark = ParameterizedBenchmark::new(
+    let square_benchmark = ParameterizedBenchmark::new(
         "binary",
         |b, i| {
             let mut grid = Grid::new(*i, *i);
@@ -47,9 +46,21 @@ fn criterion_benchmark(c: &mut Criterion) {
         .with_function("true-prims", |b, i| {
             let mut grid = Grid::new(*i, *i);
             b.iter(|| true_prims(&mut grid))
+        })
+        .with_function("growing-tree (last)", |b, i| {
+            let mut grid = Grid::new(*i, *i);
+            b.iter(|| growing_tree(&mut grid, last_selection::<Grid>))
+        })
+        .with_function("growing-tree (random)", |b, i| {
+            let mut grid = Grid::new(*i, *i);
+            b.iter(|| growing_tree(&mut grid, random_selection::<Grid>))
+        })
+        .with_function("growing-tree (mixed)", |b, i| {
+            let mut grid = Grid::new(*i, *i);
+            b.iter(|| growing_tree(&mut grid, mixed_selection::<Grid>))
         });
 
-    c.bench("Maze algorithms for NxN grids", benchmark);
+    c.bench("Maze algorithms for NxN grids", square_benchmark);
 }
 
 criterion_group!(benches, criterion_benchmark);
