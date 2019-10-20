@@ -8,8 +8,8 @@ lto = true
 
 [dependencies]
 error-chain = "^0.11"
-image = "^0.19"
-imageproc = "^0.15"
+image = "^0.22"
+imageproc = "^0.19"
 itertools = "0.7.3"
 linked_hash_set = "0.1.2"
 rand = "^0.5"
