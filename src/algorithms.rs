@@ -55,10 +55,9 @@ pub fn sidewinder(grid: &mut Grid) {
             }
         }
     }
-    links
-        .iter()
-        .map(|(p1, p2)| grid.link(p1, p2))
-        .collect::<()>();
+    for (p1, p2) in links.iter() {
+        grid.link(p1, p2);
+    }
 }
 
 pub fn aldous_broder<G: MazeGrid>(grid: &mut G) {
@@ -85,10 +84,9 @@ pub fn aldous_broder<G: MazeGrid>(grid: &mut G) {
         }
     }
 
-    links
-        .iter()
-        .map(|(p1, p2)| grid.link(p1, p2))
-        .collect::<()>();
+    for (p1, p2) in links.iter() {
+        grid.link(p1, p2);
+    }
 }
 
 pub fn wilsons<G: MazeGrid>(grid: &mut G) {

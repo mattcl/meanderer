@@ -1,6 +1,4 @@
 #![recursion_limit = "1024"] // error chain
-#[macro_use]
-extern crate error_chain;
 extern crate image;
 extern crate imageproc;
 extern crate itertools;
